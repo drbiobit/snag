@@ -217,14 +217,28 @@ async function poll() {
         timer = null;
         setPill(false);
         if (job.status === 'completed') {
-            // Show the results panel with the most recently downloaded file.
+            // Show the results panel with the file(s) this job produced.
+            // job.files holds the exact paths yt-dlp wrote (newest last);
+            // fall back to the newest file in the downloads folder if the
+            // backend didn't report any (e.g. an older server).
             show(els['status-section'], false);
             show(els['results-section'], true);
-            const files = (await (await fetch('/api/downloads')).json()).downloads;
-            const newest = files.sort((a, b) => b.size - a.size)[0];
+            let files = job.files || [];      // names of the files this job wrote
+            let newestSize = null;           // size of the newest file (fallback case only)
+            if (!files.length) {
+                // Older server that doesn't report job.files: use the newest
+                // file in the downloads folder instead.
+                const all = (await (await fetch('/api/downloads')).json()).downloads;
+                all.sort((a, b) => b.mtime - a.mtime);
+                files = all.map(f => f.name);
+                newestSize = all[0] ? all[0].size : null;
+            }
+            const newest = files[files.length - 1];
             if (newest) {
-                els['file-name'].textContent = newest.name;
-                els['file-size'].textContent = `size: ${formatSize(newest.size)}`;
+                els['file-name'].textContent = newest;
+                els['file-size'].textContent = newestSize != null
+                    ? `size: ${formatSize(newestSize)}`
+                    : files.length > 1 ? `${files.length} files downloaded` : '';
             }
         } else if (job.status === 'error') {
             // Surface the real yt-dlp error (last few lines of its output).

@@ -27,7 +27,7 @@ import threading
 import time
 from datetime import datetime
 
-from flask import Flask, request, jsonify, send_from_directory, send_file
+from flask import Flask, request, jsonify, send_from_directory
 
 # When the app started (used by /health to report uptime).
 STARTED_AT = time.time()
@@ -96,8 +96,16 @@ YT_RE = re.compile(
     re.I,
 )
 
-# Matches a clip timestamp: plain seconds, MM:SS, or H:MM:SS.
-TIME_RE = re.compile(r'^(?:\d{1,2}:)?[0-5]\d:[0-5]\d$|^\d{1,4}$')
+# Matches a clip timestamp: plain seconds, MM:SS, or H:MM:SS. Minutes and
+# seconds may be any length (yt-dlp accepts 90:00, 1:5, etc.), so we don't
+# cap them at [0-5]d here - malformed values just fail inside yt-dlp.
+TIME_RE = re.compile(r'^(?:\d+:)?\d{1,2}:\d{1,2}$|^\d{1,4}$')
+
+# Matches the playlist-item picker, e.g. '1,3,5-10' (indices and ranges).
+PLAYLIST_ITEMS_RE = re.compile(r'^\d+(?:-\d+)?(?:,\d+(?:-\d+)?)*$')
+
+# Browsers yt-dlp can import cookies from (keep in sync with yt-dlp's list).
+COOKIE_BROWSERS = {'chrome', 'firefox', 'edge', 'safari', 'brave', 'chromium', 'vivaldi', 'whale', 'opera', 'samsunginternet', 'qutebrowser', 'falkon', 'shadowfox', 'midori', 'konqueror', 'librewolf', 'waterfox', 'floorp', 'floorpce', 'bat', 'ungoogled-chromium', 'google-chrome', 'brave-browser', 'microsoft-edge', 'tor'}
 
 
 # ---------------------------------------------------------------------------
@@ -113,6 +121,29 @@ def is_valid_time(s):
     """Return True if s is '' or a valid clip timestamp (seconds / MM:SS / H:MM:SS)."""
     s = (s or '').strip()
     return True if not s else bool(TIME_RE.match(s))
+
+
+def is_valid_playlist_items(s):
+    """Return True if s is '' or a valid playlist-item picker like '1,3,5-10'."""
+    s = (s or '').strip()
+    return True if not s else bool(PLAYLIST_ITEMS_RE.match(s))
+
+
+def is_valid_cookies(s):
+    """Return True if s is '' or a recognised browser name for --cookies-from-browser."""
+    s = (s or '').strip().lower()
+    return True if not s else s in COOKIE_BROWSERS
+
+
+def is_inside_downloads(path):
+    """Return True if the resolved path is strictly inside DOWNLOADS_DIR.
+
+    Uses commonpath() rather than startswith() so a sibling directory named
+    e.g. 'downloads-evil' can't slip past a naive prefix check.
+    """
+    base = os.path.realpath(DOWNLOADS_DIR)
+    target = os.path.realpath(path)
+    return os.path.commonpath([base, target]) == base and target != base
 
 
 def is_bulk(url):
@@ -200,8 +231,10 @@ def build_args(url, d, audio_only, audio_format, audio_quality,
         extra = ['--merge-output-format', out_fmt]
 
     # Output path. Single downloads may use a custom template; bulk and the
-    # default both save into downloads/ named by title.
-    if (not bulk) and output_template:
+    # default both save into downloads/ named by title. A custom template is
+    # only honoured if it stays inside the downloads folder - otherwise we
+    # fall back to the default so a crafted template can't write elsewhere.
+    if (not bulk) and output_template and is_inside_downloads(output_template):
         out_path = output_template
     else:
         out_path = os.path.join(DOWNLOADS_DIR, '%(title)s.%(ext)s')
@@ -287,7 +320,12 @@ NEW_ITEM_RE = re.compile(r'\[info\]\s+Extracting URL:')
 # Capturing these lets the UI show the exact file(s) a job produced.
 DEST_RE = re.compile(r'\[info\]\s+Destination:\s+(.+)$')
 # A bare "[info] <title>" line (not a known sub-status message).
-INFO_TITLE_RE = re.compile(    '^\\[info\\]\\s+(?!Extracting URL|Downloading|Starting download|Merging|Destination|has already|Writing|Converting|Embedding|Building|Post-processing|already|Downloading subtitles)[^\\[]+$'
+INFO_TITLE_RE = re.compile(
+    r'^\[info\]\s+'
+    r'(?!Extracting URL|Downloading|Starting download|Merging|Destination'
+    r'|has already|Writing|Converting|Embedding|Building|Post-processing'
+    r'|already|Downloading subtitles)'
+    r'[^\[]+$'
 )
 
 
@@ -327,10 +365,17 @@ def run_job(job_id, url, d, audio_only, audio_format, audio_quality,
 
         # Read output line by line (live, as the download happens).
         for line in proc.stdout:
-            # If the user hit cancel, kill yt-dlp and stop.
+            # If the user hit cancel, stop yt-dlp and stop. terminate() lets
+            # yt-dlp clean up (and take its ffmpeg child with it); kill() is
+            # the fallback if it ignores the first signal.
             with jobs_lock:
                 if jobs.get(job_id, {}).get('cancelled'):
-                    proc.kill()
+                    proc.terminate()
+                    try:
+                        proc.wait(timeout=5)
+                    except subprocess.TimeoutExpired:
+                        proc.kill()
+                        proc.wait()
                     job['status'], job['message'] = 'cancelled', 'Cancelled by user'
                     return
 
@@ -458,9 +503,13 @@ def download():
     if not is_valid_url(url):
         return jsonify(success=False, error='Invalid YouTube URL'), 400
 
-    # Reject malformed clip timestamps before they reach yt-dlp.
+    # Reject malformed user-supplied values before they reach yt-dlp.
     if not (is_valid_time(d.get('trim_start', '')) and is_valid_time(d.get('trim_end', ''))):
-        return jsonify(success=False, error='Invalid clip start/end (use MM:SS or HH:MM:SS)'), 400
+        return jsonify(success=False, error='Invalid clip start/end (use seconds, MM:SS or HH:MM:SS)'), 400
+    if not is_valid_playlist_items(d.get('playlist_items', '')):
+        return jsonify(success=False, error='Invalid playlist items (use e.g. 1,3,5-10)'), 400
+    if not is_valid_cookies(d.get('cookies', '')):
+        return jsonify(success=False, error='Invalid cookie browser (e.g. chrome, firefox, edge)'), 400
 
     # Register the job (and check the limit) under the lock.
     with jobs_lock:
@@ -643,12 +692,9 @@ def download_file(name):
 def delete_file(name):
     """Delete a file from the downloads folder."""
     # Resolve the real path and make sure it's strictly inside DOWNLOADS_DIR
-    # so a crafted name can't delete files elsewhere on disk. commonpath()
-    # avoids the startswith() pitfall where a sibling directory named
-    # "downloads-evil" would pass a naive prefix check.
-    base = os.path.realpath(DOWNLOADS_DIR)
+    # so a crafted name can't delete files elsewhere on disk.
     target = os.path.realpath(os.path.join(DOWNLOADS_DIR, name))
-    if os.path.commonpath([base, target]) != base or target == base:
+    if not is_inside_downloads(target):
         return jsonify(success=False, error='Invalid path'), 400
     if os.path.isfile(target):
         os.remove(target)
@@ -659,8 +705,10 @@ def delete_file(name):
 @app.route('/health')
 def health():
     """Liveness probe: reports that the app is up and how many jobs are running."""
+    # Every job in the table is live (finished/cancelled ones are removed in
+    # run_job's finally block), so the table size is the active-job count.
     with jobs_lock:
-        running = sum(1 for j in jobs.values() if j['status'] == 'pending')
+        running = len(jobs)
     return jsonify(
         status='ok',
         app='snag',
