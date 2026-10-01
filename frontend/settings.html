@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snag · settings</title>
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Ubuntu+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
+    <!-- Apply the saved theme before paint to avoid a flash of the default. -->
+    <script src="/static/theme.js"></script>
+</head>
+<body>
+    <div class="layout">
+
+        <!-- Top header: app name + nav (nav lives here on every size) -->
+        <header class="topbar">
+            <a class="brand" href="/">
+                <span>snag<span class="caret">_</span></span>
+            </a>
+            <nav class="side-nav">
+                <a href="/" data-label="app" title="app">
+                    <svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5M5 9.5V20h14V9.5M9 20v-6h6v6"/></svg>
+                </a>
+                <a href="/downloads" data-label="downloads" title="downloads">
+                    <svg viewBox="0 0 24 24"><path d="M12 3v12M7 11l5 5 5-5M4 20h16"/></svg>
+                </a>
+                <a href="/docs" data-label="docs" title="docs">
+                    <svg viewBox="0 0 24 24"><path d="M5 4h11l3 3v13H5zM8 9h8M8 13h8M8 17h5"/></svg>
+                </a>
+                <a href="/settings" class="active" data-label="settings" title="settings">
+                    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9 17 7M7 17l-2.1 2.1"/></svg>
+                </a>
+            </nav>
+        </header>
+
+        <!-- Body: content only (nav moved to the top header) -->
+        <div class="body-row">
+
+        <!-- Main content column -->
+        <div class="content">
+
+        <main>
+            <section class="card">
+                <div class="card-head">
+                    <h2>Settings</h2>
+                    <span class="muted">appearance</span>
+                </div>
+
+                <!-- Theme picker: saved to localStorage, applied on every page -->
+                <div class="field">
+                    <label>theme</label>
+                    <div class="swatches" id="theme-swatches">
+                        <button class="swatch" data-theme="black" title="Black">
+                            <span class="swatch-chip" style="background:#000000; border:1px solid #2a2a2a;"></span>
+                            <span class="swatch-name">black</span>
+                        </button>
+                        <button class="swatch" data-theme="midnight" title="Midnight">
+                            <span class="swatch-chip" style="background:#0b1120;"></span>
+                            <span class="swatch-name">midnight</span>
+                        </button>
+                        <button class="swatch" data-theme="charcoal" title="Charcoal">
+                            <span class="swatch-chip" style="background:#1a1a1a;"></span>
+                            <span class="swatch-name">charcoal</span>
+                        </button>
+                        <button class="swatch" data-theme="light" title="Light">
+                            <span class="swatch-chip" style="background:#f4f4f4;"></span>
+                            <span class="swatch-name">light</span>
+                        </button>
+                    </div>
+                </div>
+
+                <p class="muted note">
+                    Your theme is stored in this browser and applied across the
+                    app, docs and settings pages.
+                </p>
+            </section>
+
+            <!-- Default download options: saved to localStorage, pre-fill the form -->
+            <section class="card">
+                <div class="card-head">
+                    <h2>Default download options</h2>
+                    <span class="muted">pre-filled on the app page</span>
+                </div>
+
+                <div class="row">
+                    <div class="field">
+                        <label for="def-format">quality</label>
+                        <select id="def-format">
+                            <option value="best">best</option>
+                            <option value="1080">1080p</option>
+                            <option value="720">720p</option>
+                            <option value="480">480p</option>
+                            <option value="audio">audio</option>
+                            <option value="video">video</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label for="def-video-format">video format</label>
+                        <select id="def-video-format">
+                            <option value="mp4">mp4</option>
+                            <option value="webm">webm</option>
+                            <option value="mkv">mkv</option>
+                            <option value="mov">mov</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="field">
+                        <label for="def-audio-format">audio format</label>
+                        <select id="def-audio-format">
+                            <option value="mp3">mp3</option>
+                            <option value="m4a">m4a</option>
+                            <option value="wav">wav</option>
+                            <option value="ogg">ogg</option>
+                            <option value="flac">flac</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label for="def-audio-quality">audio bitrate</label>
+                        <select id="def-audio-quality">
+                            <option value="0">highest (vbr)</option>
+                            <option value="1">128 kbps</option>
+                            <option value="2">192 kbps</option>
+                            <option value="3">256 kbps</option>
+                            <option value="4">320 kbps</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="field">
+                        <label for="def-fragments">fragment threads</label>
+                        <select id="def-fragments">
+                            <option value="0">off</option>
+                            <option value="2">2</option>
+                            <option value="4">4</option>
+                            <option value="8">8</option>
+                            <option value="16">16</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label for="def-playlist-index">playlist index</label>
+                        <select id="def-playlist-index">
+                            <option value="">separate files</option>
+                            <option value="m3u">m3u playlist</option>
+                            <option value="mkv">merge to mkv</option>
+                            <option value="mp4">merge to mp4</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <label class="check">
+                        <input type="checkbox" id="def-audio-only">
+                        <span>audio only</span>
+                    </label>
+                    <label class="check">
+                        <input type="checkbox" id="def-resume" checked>
+                        <span>resume &amp; skip existing</span>
+                    </label>
+                    <label class="check">
+                        <input type="checkbox" id="def-metadata">
+                        <span>embed metadata</span>
+                    </label>
+                </div>
+
+                <div class="field">
+                    <label for="def-output-template">output template <span class="muted">(single only)</span></label>
+                    <input type="text" id="def-output-template" placeholder="%(title)s.%(ext)s" spellcheck="false" autocomplete="off">
+                </div>
+
+                <div class="actions">
+                    <button class="btn btn-primary" id="save-defaults">save defaults</button>
+                    <button class="btn btn-ghost" id="reset-defaults">reset</button>
+                </div>
+                <p class="muted note" id="save-note"></p>
+            </section>
+        </main>
+
+        <footer>
+            <span>snag — powered by <a href="https://github.com/yt-dlp/yt-dlp" target="_blank">yt-dlp</a></span>
+        </footer>
+
+        </div><!-- /.content -->
+        </div><!-- /.body-row -->
+    </div><!-- /.layout -->
+    <script src="/static/settings.js"></script>
+</body>
+</html>

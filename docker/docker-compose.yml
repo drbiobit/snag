@@ -1,0 +1,36 @@
+# ===========================================================================
+# Snag - Docker Compose (deployment)
+#
+# This deploys the `snag` image. Build the image first (from the project
+# root), then run compose:
+#
+#     docker build -t snag .                 # build the image
+#     docker compose -f docker/docker-compose.yml up -d   # deploy it
+#
+# Open http://localhost:8000
+# ===========================================================================
+
+services:
+  snag:
+    image: snag:latest           # built by `docker build -t snag .`
+    container_name: snag
+    ports:
+      - "8000:8000"               # host:container (change left side to remap)
+    environment:
+      # Where downloads are stored inside the container (mounted below).
+      DOWNLOAD_DIR: /data
+      # Number of Gunicorn worker processes.
+      GUNICORN_WORKERS: "2"
+    volumes:
+      # Persist downloads across container rebuilds / restarts.
+      - snag-data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  snag-data:

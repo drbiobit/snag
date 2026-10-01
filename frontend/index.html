@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snag · grab videos, playlists &amp; audio</title>
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+    <!-- Ubuntu Mono from Google Fonts, with monospace fallbacks -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Ubuntu+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="layout">
+
+        <!-- Top header: app name + nav (nav lives here on every size) -->
+        <header class="topbar">
+            <a class="brand" href="/">
+                <span>snag<span class="caret">_</span></span>
+            </a>
+            <nav class="side-nav">
+                <a href="/" class="active" data-label="app" title="app">
+                    <svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5M5 9.5V20h14V9.5M9 20v-6h6v6"/></svg>
+                </a>
+                <a href="/downloads" data-label="downloads" title="downloads">
+                    <svg viewBox="0 0 24 24"><path d="M12 3v12M7 11l5 5 5-5M4 20h16"/></svg>
+                </a>
+                <a href="/docs" data-label="docs" title="docs">
+                    <svg viewBox="0 0 24 24"><path d="M5 4h11l3 3v13H5zM8 9h8M8 13h8M8 17h5"/></svg>
+                </a>
+                <a href="/settings" data-label="settings" title="settings">
+                    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9 17 7M7 17l-2.1 2.1"/></svg>
+                </a>
+            </nav>
+        </header>
+
+        <!-- Body: content only (nav moved to the top header) -->
+        <div class="body-row">
+
+        <!-- Main content column -->
+        <div class="content">
+
+        <main>
+            <!-- Download form: URL, type, format and options -->
+            <section class="card">
+                <div class="card-head">
+                    <h2>Download</h2>
+                    <span class="muted">paste a link, pick options, go</span>
+                </div>
+
+                <div class="field">
+                    <label for="url">url</label>
+                    <input type="text" id="url" placeholder="video, playlist, channel or user link" spellcheck="false" autocomplete="off">
+                </div>
+
+                <div class="row">
+                    <div class="field">
+                        <label for="type">type</label>
+                        <select id="type">
+                            <option value="video">video</option>
+                            <option value="bulk">bulk (playlist / channel / user)</option>
+                            <option value="mp3">mp3</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label for="format">quality</label>
+                        <select id="format">
+                            <option value="best">best</option>
+                            <option value="1080">1080p</option>
+                            <option value="720">720p</option>
+                            <option value="480">480p</option>
+                            <option value="audio">audio</option>
+                            <option value="video">video</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="field" id="video-format-group">
+                        <label for="video-format">output format</label>
+                        <select id="video-format">
+                            <option value="mp4" selected>mp4</option>
+                            <option value="webm">webm</option>
+                            <option value="mkv">mkv</option>
+                            <option value="mov">mov</option>
+                        </select>
+                    </div>
+                    <div class="field" id="audio-format-group" style="display:none;">
+                        <label for="audio-format">audio format</label>
+                        <select id="audio-format">
+                            <option value="mp3" selected>mp3</option>
+                            <option value="m4a">m4a</option>
+                            <option value="wav">wav</option>
+                            <option value="ogg">ogg</option>
+                            <option value="flac">flac</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="field" id="audio-quality-group" style="display:none;">
+                        <label for="audio-quality">audio bitrate</label>
+                        <select id="audio-quality">
+                            <option value="0">highest (vbr)</option>
+                            <option value="1">128 kbps</option>
+                            <option value="2" selected>192 kbps</option>
+                            <option value="3">256 kbps</option>
+                            <option value="4">320 kbps</option>
+                        </select>
+                    </div>
+                    <label class="check">
+                        <input type="checkbox" id="audio-only">
+                        <span>audio only</span>
+                    </label>
+                </div>
+
+                <!-- Output template: single downloads only (hidden for bulk) -->
+                <div class="field" id="template-group">
+                    <label for="output-template">output template <span class="muted">(single only)</span></label>
+                    <input type="text" id="output-template" placeholder="%(title)s.%(ext)s" spellcheck="false" autocomplete="off">
+                </div>
+
+                <!-- Advanced options: resume + metadata + multithreaded fragments -->
+                <div class="row">
+                    <label class="check">
+                        <input type="checkbox" id="resume" checked>
+                        <span>resume &amp; skip existing</span>
+                    </label>
+                    <div class="field frag-field">
+                        <label for="fragments">fragment threads</label>
+                        <select id="fragments">
+                            <option value="0" selected>off</option>
+                            <option value="2">2</option>
+                            <option value="4">4</option>
+                            <option value="8">8</option>
+                            <option value="16">16</option>
+                        </select>
+                    </div>
+                </div>
+
+                <label class="check">
+                    <input type="checkbox" id="metadata">
+                    <span>embed metadata <span class="muted">(tags · thumbnail · chapters)</span></span>
+                </label>
+
+                <!-- Thumbnails only: grab just each video's cover image (great for whole channels) -->
+                <label class="check">
+                    <input type="checkbox" id="thumbnails">
+                    <span>thumbnails only <span class="muted">(grab covers, skip media — fast for whole channels)</span></span>
+                </label>
+
+                <!-- Subtitles: download (and optionally embed) captions -->
+                <label class="check">
+                    <input type="checkbox" id="subtitles">
+                    <span>subtitles</span>
+                </label>
+                <div class="row" id="sub-options" style="display:none;">
+                    <div class="field">
+                        <label for="sub-langs">subtitle language</label>
+                        <select id="sub-langs">
+                            <option value="en" selected>english</option>
+                            <option value="all">all languages</option>
+                            <option value="en,fr">english + french</option>
+                            <option value="es">spanish</option>
+                            <option value="de">german</option>
+                            <option value="hi">hindi</option>
+                        </select>
+                    </div>
+                    <label class="check">
+                        <input type="checkbox" id="sub-embed">
+                        <span>embed into file</span>
+                    </label>
+                </div>
+
+                <!-- Clip trimming: download only a section of the video -->
+                <div class="row">
+                    <div class="field">
+                        <label for="trim-start">clip start</label>
+                        <input type="text" id="trim-start" placeholder="00:00:00" spellcheck="false" autocomplete="off">
+                    </div>
+                    <div class="field">
+                        <label for="trim-end">clip end</label>
+                        <input type="text" id="trim-end" placeholder="00:01:00" spellcheck="false" autocomplete="off">
+                    </div>
+                </div>
+
+                <!-- Playlist items: which items of a bulk download to grab (hidden for single) -->
+                <div class="field" id="playlist-items-group" style="display:none;">
+                    <label for="playlist-items">playlist items <span class="muted">(bulk only)</span></label>
+                    <input type="text" id="playlist-items" placeholder="e.g. 1,3,5-10  (blank = all)" spellcheck="false" autocomplete="off">
+                </div>
+
+                <!-- Cookies: import from a browser for age-restricted content -->
+                <div class="field">
+                    <label for="cookies">cookies <span class="muted">(age-restricted / members-only)</span></label>
+                    <select id="cookies">
+                        <option value="" selected>none</option>
+                        <option value="chrome">chrome</option>
+                        <option value="firefox">firefox</option>
+                        <option value="edge">edge</option>
+                        <option value="safari">safari</option>
+                    </select>
+                </div>
+
+                <!-- Playlist index: how to combine a bulk download (hidden for single) -->
+                <div class="field" id="playlist-group" style="display:none;">
+                    <label for="playlist-index">playlist index <span class="muted">(bulk only)</span></label>
+                    <select id="playlist-index">
+                        <option value="" selected>separate files</option>
+                        <option value="m3u">m3u playlist</option>
+                        <option value="mkv">merge to mkv</option>
+                        <option value="mp4">merge to mp4</option>
+                    </select>
+                </div>
+
+                <div class="actions">
+                    <button id="preview-btn" class="btn btn-ghost" title="show what's available before downloading">preview</button>
+                    <button id="download-btn" class="btn btn-primary" disabled>download</button>
+                    <button id="cancel-btn" class="btn btn-ghost" style="display:none;">cancel</button>
+                </div>
+
+                <!-- Quality preview: shown after clicking preview -->
+                <div id="preview-box" class="preview" style="display:none;">
+                    <div class="preview-title" id="preview-title">checking…</div>
+                    <div class="preview-meta" id="preview-meta"></div>
+                    <div class="preview-tags" id="preview-tags"></div>
+                </div>
+            </section>
+
+            <!-- Live progress, shown while a download is running -->
+            <section class="card" id="status-section" style="display:none;">
+                <div class="card-head">
+                    <h2>Progress</h2>
+                    <span class="muted" id="status-message">starting…</span>
+                </div>
+                <div class="bar">
+                    <div class="bar-fill" id="progress-fill"></div>
+                </div>
+                <div class="meta-row">
+                    <span class="big-num" id="progress-text">0%</span>
+                    <span class="muted" id="file-counter"></span>
+                </div>
+                <!-- Per-file progress list for bulk downloads (file 1, file 2, ...) -->
+                <ul class="file-list" id="file-list" style="display:none;"></ul>
+                <!-- Real yt-dlp error, shown only when a download fails -->
+                <pre class="error-box" id="error-box" style="display:none;"></pre>
+            </section>
+
+            <!-- Shown after a successful download -->
+            <section class="card success" id="results-section" style="display:none;">
+                <div class="card-head">
+                    <h2 class="ok">✓ complete</h2>
+                </div>
+                <div class="file-box">
+                    <p class="file-name" id="file-name">filename</p>
+                    <p class="muted" id="file-size">size: 0 b</p>
+                </div>
+                <div class="actions">
+                    <button class="btn btn-primary" id="open-btn">open</button>
+                    <button class="btn btn-ghost" id="show-path-btn">show path</button>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <span>snag — powered by <a href="https://github.com/yt-dlp/yt-dlp" target="_blank">yt-dlp</a></span>
+        </footer>
+
+        </div><!-- /.content -->
+        </div><!-- /.body-row -->
+    </div><!-- /.layout -->
+    <script src="/static/theme.js"></script>
+    <script src="/static/app.js"></script>
+</body>
+</html>

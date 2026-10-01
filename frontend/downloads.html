@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snag · downloads</title>
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Ubuntu+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="/static/theme.js"></script>
+</head>
+<body>
+    <div class="layout">
+
+        <!-- Top header: app name + nav (nav lives here on every size) -->
+        <header class="topbar">
+            <a class="brand" href="/">
+                <span>snag<span class="caret">_</span></span>
+            </a>
+            <nav class="side-nav">
+                <a href="/" data-label="app" title="app">
+                    <svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5M5 9.5V20h14V9.5M9 20v-6h6v6"/></svg>
+                </a>
+                <a href="/downloads" class="active" data-label="downloads" title="downloads">
+                    <svg viewBox="0 0 24 24"><path d="M12 3v12M7 11l5 5 5-5M4 20h16"/></svg>
+                </a>
+                <a href="/docs" data-label="docs" title="docs">
+                    <svg viewBox="0 0 24 24"><path d="M5 4h11l3 3v13H5zM8 9h8M8 13h8M8 17h5"/></svg>
+                </a>
+                <a href="/settings" data-label="settings" title="settings">
+                    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9 17 7M7 17l-2.1 2.1"/></svg>
+                </a>
+            </nav>
+        </header>
+
+        <!-- Body: content only (nav moved to the top header) -->
+        <div class="body-row">
+
+        <!-- Main content column -->
+        <div class="content">
+
+        <main>
+            <section class="card">
+                <div class="card-head">
+                    <h2>Downloads</h2>
+                    <span class="muted" id="dl-count">0 files</span>
+                </div>
+
+                <div id="dl-list">
+                    <!-- rows injected by downloads.js -->
+                    <p class="muted" id="dl-empty">No downloads yet. Grab something from the app.</p>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <span>snag — powered by <a href="https://github.com/yt-dlp/yt-dlp" target="_blank">yt-dlp</a></span>
+        </footer>
+
+        </div><!-- /.content -->
+        </div><!-- /.body-row -->
+    </div><!-- /.layout -->
+    <script src="/static/downloads.js"></script>
+</body>
+</html>
