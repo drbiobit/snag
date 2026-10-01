@@ -21,6 +21,7 @@ Requires: yt-dlp and ffmpeg on your PATH.
 import os
 import re
 import json
+import uuid
 import subprocess
 import threading
 import time
@@ -57,6 +58,12 @@ jobs = {}
 # Lock so the jobs dict is only read/written by one thread at a time.
 jobs_lock = threading.Lock()
 
+# How many /api/preview lookups may run at the same time (each one spawns
+# its own yt-dlp process, so an unbounded number would be a cheap DoS).
+MAX_PREVIEWS = 2
+previews_active = 0
+previews_lock = threading.Lock()
+
 # ---------------------------------------------------------------------------
 # yt-dlp option lookup tables
 # ---------------------------------------------------------------------------
@@ -89,6 +96,9 @@ YT_RE = re.compile(
     re.I,
 )
 
+# Matches a clip timestamp: plain seconds, MM:SS, or H:MM:SS.
+TIME_RE = re.compile(r'^(?:\d{1,2}:)?[0-5]\d:[0-5]\d$|^\d{1,4}$')
+
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -97,6 +107,12 @@ YT_RE = re.compile(
 def is_valid_url(url):
     """Return True if the given string looks like a YouTube URL."""
     return bool(YT_RE.match(url.strip()))
+
+
+def is_valid_time(s):
+    """Return True if s is '' or a valid clip timestamp (seconds / MM:SS / H:MM:SS)."""
+    s = (s or '').strip()
+    return True if not s else bool(TIME_RE.match(s))
 
 
 def is_bulk(url):
@@ -266,6 +282,10 @@ def parse_progress(line):
 # Each such line marks the start of a new item, so counting them gives the
 # current file index. The item's title is the next bare "[info] <title>" line.
 NEW_ITEM_RE = re.compile(r'\[info\]\s+Extracting URL:')
+# The line yt-dlp prints with the file it is about to write:
+#   [info] Destination: /path/to/file.mp4
+# Capturing these lets the UI show the exact file(s) a job produced.
+DEST_RE = re.compile(r'\[info\]\s+Destination:\s+(.+)$')
 # A bare "[info] <title>" line (not a known sub-status message).
 INFO_TITLE_RE = re.compile(    '^\\[info\\]\\s+(?!Extracting URL|Downloading|Starting download|Merging|Destination|has already|Writing|Converting|Embedding|Building|Post-processing|already|Downloading subtitles)[^\\[]+$'
 )
@@ -287,6 +307,8 @@ def run_job(job_id, url, d, audio_only, audio_format, audio_quality,
     job = jobs[job_id]
     # Keep a short rolling tail of yt-dlp output to surface on failure.
     tail = []
+    # Output files this job has written (paths relative to DOWNLOADS_DIR).
+    files = []
     # Bulk-download tracking: how many files we've seen start, the current
     # file's title, and the latest per-file progress (index -> percent).
     file_index = 0          # 1-based count of files that have started
@@ -330,6 +352,14 @@ def run_job(job_id, url, d, audio_only, audio_format, audio_quality,
                 m = INFO_TITLE_RE.match(line)
                 if m:
                     current_title = m.group(0)[len('[info] '):].strip()
+
+            # Remember the file yt-dlp is writing so the UI can show the
+            # exact result after completion.
+            m = DEST_RE.search(line)
+            if m:
+                path = os.path.abspath(m.group(1).strip())
+                files.append(os.path.relpath(path, DOWNLOADS_DIR))
+                job['files'] = list(files)
 
             # Update progress if this line carries progress info.
             progress = parse_progress(line)
@@ -428,12 +458,16 @@ def download():
     if not is_valid_url(url):
         return jsonify(success=False, error='Invalid YouTube URL'), 400
 
+    # Reject malformed clip timestamps before they reach yt-dlp.
+    if not (is_valid_time(d.get('trim_start', '')) and is_valid_time(d.get('trim_end', ''))):
+        return jsonify(success=False, error='Invalid clip start/end (use MM:SS or HH:MM:SS)'), 400
+
     # Register the job (and check the limit) under the lock.
     with jobs_lock:
         if len(jobs) >= MAX_CONCURRENT:
             return jsonify(success=False, error='Too many concurrent downloads'), 429
 
-        job_id = str(int(time.time() * 1000))
+        job_id = uuid.uuid4().hex
         jobs[job_id] = {
             'id': job_id,
             'url': url,
@@ -493,14 +527,16 @@ def cancel(job_id):
 
 @app.route('/api/downloads')
 def list_downloads():
-    """List all files currently in the downloads folder (with sizes)."""
+    """List all files currently in the downloads folder (with sizes + mtime)."""
     files = []
     for root, _, names in os.walk(DOWNLOADS_DIR):
         for name in names:
             path = os.path.join(root, name)
+            st = os.stat(path)
             files.append({
                 'name': os.path.relpath(path, DOWNLOADS_DIR),
-                'size': os.path.getsize(path),
+                'size': st.st_size,
+                'mtime': st.st_mtime,
             })
     return jsonify(success=True, downloads=files)
 
@@ -525,58 +561,73 @@ def preview():
     if not is_valid_url(url):
         return jsonify(success=False, error='Invalid YouTube URL'), 400
 
+    # Enforce the preview concurrency limit (each preview spawns a yt-dlp
+    # process, so an unbounded number of them would be a cheap DoS).
+    global previews_active
+    with previews_lock:
+        if previews_active >= MAX_PREVIEWS:
+            return jsonify(success=False, error='Too many previews running, try again shortly'), 429
+        previews_active += 1
+
     # Collections are large; read them flat (fast, no per-item formats).
     # Single videos get the full (slower) format dump.
     flat = is_bulk(url)
     cmd = ['yt-dlp', '-J', url] + (['--flat-playlist'] if flat else [])
 
+    # Wrap everything after the counter is taken so it is always released,
+    # even when we return early on an error.
     try:
-        # stderr goes to its own pipe (discarded) so stdout stays pure JSON -
-        # yt-dlp writes warnings to stderr and merging them would break parsing.
-        proc = subprocess.run(
-            cmd,
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
-            timeout=90,
+        try:
+            # stderr goes to its own pipe (discarded) so stdout stays pure JSON -
+            # yt-dlp writes warnings to stderr and merging them would break parsing.
+            proc = subprocess.run(
+                cmd,
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+                timeout=90,
+            )
+        except subprocess.TimeoutExpired:
+            return jsonify(success=False, error='Timed out reading this URL'), 400
+        except FileNotFoundError:
+            return jsonify(success=False, error='yt-dlp not found. Install it first.'), 500
+        except Exception as e:
+            return jsonify(success=False, error=f'Could not read this URL: {e}'), 500
+
+        if proc.returncode != 0:
+            # yt-dlp printed the real reason to stderr - surface it.
+            return jsonify(success=False, error=(proc.stderr or 'Could not read this URL').strip()[-300:]), 400
+
+        try:
+            data = json.loads(proc.stdout)
+        except json.JSONDecodeError:
+            return jsonify(success=False, error='Could not parse this URL'), 400
+        if not data:
+            return jsonify(success=False, error='Could not read this URL'), 400
+
+        # Collect the distinct resolutions and audio codecs we can offer.
+        heights, formats = set(), set()
+        entries = data.get('entries') or []
+        # For a single video the top-level object holds the formats; for a flat
+        # collection the entries hold them (usually empty).
+        nodes = [data] if not entries else entries
+        for e in nodes:
+            for f in (e.get('formats') or []):
+                if f.get('height'):
+                    heights.add(int(f['height']))
+                if f.get('acodec') not in (None, 'none'):
+                    formats.add(f['acodec'])
+
+        return jsonify(
+            success=True,
+            title=data.get('title', ''),
+            count=len(entries) or 1,
+            bulk=flat,
+            heights=sorted(heights, reverse=True),
+            formats=sorted(formats),
         )
-    except subprocess.TimeoutExpired:
-        return jsonify(success=False, error='Timed out reading this URL'), 400
-    except FileNotFoundError:
-        return jsonify(success=False, error='yt-dlp not found. Install it first.'), 500
-    except Exception as e:
-        return jsonify(success=False, error=f'Could not read this URL: {e}'), 500
-
-    if proc.returncode != 0:
-        # yt-dlp printed the real reason to stderr - surface it.
-        return jsonify(success=False, error=(proc.stderr or 'Could not read this URL').strip()[-300:]), 400
-
-    try:
-        data = json.loads(proc.stdout)
-    except json.JSONDecodeError:
-        return jsonify(success=False, error='Could not parse this URL'), 400
-    if not data:
-        return jsonify(success=False, error='Could not read this URL'), 400
-
-    # Collect the distinct resolutions and audio codecs we can offer.
-    heights, formats = set(), set()
-    entries = data.get('entries') or []
-    # For a single video the top-level object holds the formats; for a flat
-    # collection the entries hold them (usually empty).
-    nodes = [data] if not entries else entries
-    for e in nodes:
-        for f in (e.get('formats') or []):
-            if f.get('height'):
-                heights.add(int(f['height']))
-            if f.get('acodec') not in (None, 'none'):
-                formats.add(f['acodec'])
-
-    return jsonify(
-        success=True,
-        title=data.get('title', ''),
-        count=len(entries) or 1,
-        bulk=flat,
-        heights=sorted(heights, reverse=True),
-        formats=sorted(formats),
-    )
+    finally:
+        # Release the preview slot no matter how we got here.
+        with previews_lock:
+            previews_active -= 1
 
 
 @app.route('/downloads/<path:name>')
@@ -591,10 +642,13 @@ def download_file(name):
 @app.route('/api/delete/<path:name>', methods=['POST'])
 def delete_file(name):
     """Delete a file from the downloads folder."""
-    # Resolve the real path and make sure it's inside DOWNLOADS_DIR so a
-    # crafted name can't delete files elsewhere on disk.
+    # Resolve the real path and make sure it's strictly inside DOWNLOADS_DIR
+    # so a crafted name can't delete files elsewhere on disk. commonpath()
+    # avoids the startswith() pitfall where a sibling directory named
+    # "downloads-evil" would pass a naive prefix check.
+    base = os.path.realpath(DOWNLOADS_DIR)
     target = os.path.realpath(os.path.join(DOWNLOADS_DIR, name))
-    if not target.startswith(os.path.realpath(DOWNLOADS_DIR)):
+    if os.path.commonpath([base, target]) != base or target == base:
         return jsonify(success=False, error='Invalid path'), 400
     if os.path.isfile(target):
         os.remove(target)
