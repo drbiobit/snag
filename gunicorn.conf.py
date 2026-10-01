@@ -13,14 +13,17 @@ Or override any value from the command line, e.g.:
 bind = "0.0.0.0:8000"
 
 # --- Workers -------------------------------------------------------------
-# One worker per CPU core is a good starting point for a mostly-I/O-bound
-# app (each download runs in its own thread inside the worker).
+# IMPORTANT: this app MUST run with a single worker process.
+# Job state (the `jobs` dict in Main.py) lives in process memory. With
+# multiple workers, a status/cancel poll can land on a different worker
+# than the one that registered the job and get a 404.
+# Concurrency comes from threads, not workers.
 import os
-workers = int(os.environ.get("GUNICORN_WORKERS", 4))
+workers = int(os.environ.get("GUNICORN_WORKERS", 1))
 
-# Each worker is a separate process; threads let it serve a few requests
-# concurrently (useful while a download job is being polled).
-threads = 2
+# Threads let the single worker serve several requests at once
+# (useful while a download job is being polled).
+threads = 4
 
 # --- Timeouts ------------------------------------------------------------
 # Downloads run as background threads and the HTTP request returns quickly,

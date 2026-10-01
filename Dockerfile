@@ -1,7 +1,7 @@
 # ===========================================================================
 # Snag - Docker image
 #
-# Base: Ubuntu 26.04 (noble) with the system Python 3, a virtualenv, and all
+# Base: Ubuntu 24.04 (noble) with the system Python 3, a virtualenv, and all
 # pip packages installed into it. yt-dlp and ffmpeg (needed to merge
 # video/audio and re-encode audio) are installed at the system level, then
 # the app runs under Gunicorn from inside the venv.
@@ -10,7 +10,7 @@
 #     docker build -t snag .
 # ===========================================================================
 
-FROM ubuntu:26.04
+FROM ubuntu:24.04
 
 # --- System packages -------------------------------------------------------
 #   python3 + python3-venv : the interpreter and the venv module
@@ -50,8 +50,10 @@ COPY frontend ./frontend
 # --- Runtime configuration -------------------------------------------------
 # Where downloads are stored. Overridable at run time, e.g.
 #     docker run -e DOWNLOAD_DIR=/data -v snag-data:/data snag
+# GUNICORN_WORKERS must stay 1: job state lives in process memory (see
+# gunicorn.conf.py), so multiple workers would break status polling.
 ENV DOWNLOAD_DIR=/data \
-    GUNICORN_WORKERS=2 \
+    GUNICORN_WORKERS=1 \
     PORT=8000
 
 # Create the default download directory and a non-root user to run as.

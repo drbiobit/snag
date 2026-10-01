@@ -19,7 +19,7 @@
 #
 # Optional environment variables:
 #   PORT=8000            # port to bind (default 8000)
-#   WORKERS=2            # gunicorn worker count (default 2)
+#   WORKERS=1            # gunicorn worker count (MUST stay 1 - job state is in process memory)
 #   DOWNLOAD_DIR=...     # where downloads are saved (default ./downloads)
 #   APP_NAME=snag        # PM2 process name (default "snag")
 #
@@ -29,7 +29,7 @@ set -euo pipefail
 # Configuration (overridable via environment)
 # ---------------------------------------------------------------------------
 PORT="${PORT:-8000}"
-WORKERS="${WORKERS:-2}"
+WORKERS="${WORKERS:-1}"
 DOWNLOAD_DIR="${DOWNLOAD_DIR:-$(pwd)/downloads}"
 APP_NAME="${APP_NAME:-snag}"
 VENV_DIR="venv"

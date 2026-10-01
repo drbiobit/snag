@@ -19,8 +19,9 @@ services:
     environment:
       # Where downloads are stored inside the container (mounted below).
       DOWNLOAD_DIR: /data
-      # Number of Gunicorn worker processes.
-      GUNICORN_WORKERS: "2"
+      # Must stay 1: job state is in process memory, so multiple workers
+      # would break /api/status and /api/cancel polling.
+      GUNICORN_WORKERS: "1"
     volumes:
       # Persist downloads across container rebuilds / restarts.
       - snag-data:/data

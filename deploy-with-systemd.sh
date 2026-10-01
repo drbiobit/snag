@@ -20,7 +20,7 @@
 #
 # Optional environment variables:
 #   PORT=8000        # port to bind (default 8000)
-#   WORKERS=2        # gunicorn worker count (default 2)
+#   WORKERS=1        # gunicorn worker count (MUST stay 1 - job state is in process memory)
 #   DOWNLOAD_DIR=... # where downloads are saved (default <app>/downloads)
 #
 # NOTE: run with sudo so it can write the unit file and talk to systemd.
@@ -32,7 +32,7 @@ set -euo pipefail
 # Configuration (overridable via environment)
 # ---------------------------------------------------------------------------
 PORT="${PORT:-8000}"
-WORKERS="${WORKERS:-2}"
+WORKERS="${WORKERS:-1}"
 SERVICE_NAME="snag"
 
 # Colours for nicer output.
