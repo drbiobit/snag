@@ -64,9 +64,11 @@ fi
 # Resolve the app directory = where this script lives.
 APP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Resolve uid/gid and home for the run user.
+# Resolve uid/gid, group name, and home for the run user.
 RUN_UID="$(id -u "$RUN_USER")"
 RUN_GID="$(id -g "$RUN_USER")"
+# systemd's Group= wants a group *name*, not a numeric gid.
+RUN_GROUP="$(id -gn "$RUN_USER")"
 # getent is the portable way on Linux; fall back to parsing /etc/passwd.
 RUN_HOME="$(getent passwd "$RUN_USER" 2>/dev/null | cut -d: -f6)"
 if [ -z "$RUN_HOME" ]; then
@@ -82,7 +84,7 @@ VENV_DIR="$APP_DIR/venv"
 GUNICORN="$VENV_DIR/bin/gunicorn"
 
 echo "==> Detected deployment target"
-echo "    user          : $RUN_USER (uid=$RUN_UID gid=$RUN_GID)"
+echo "    user          : $RUN_USER (uid=$RUN_UID gid=$RUN_GID group=$RUN_GROUP)"
 echo "    home          : $RUN_HOME"
 echo "    app dir       : $APP_DIR"
 echo "    download dir  : $DOWNLOAD_DIR"
@@ -154,7 +156,7 @@ Wants=network-online.target
 Type=simple
 # Run as the invoking (non-root) user, not root.
 User=$RUN_USER
-Group=$RUN_GID
+Group=$RUN_GROUP
 # Where the app lives.
 WorkingDirectory=$APP_DIR
 # Environment the app needs.

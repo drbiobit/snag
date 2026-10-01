@@ -24,7 +24,7 @@ script, which uses the Flask dev server (fine for personal use).
 
 ## 1. Docker (recommended for a public link)
 
-The image is **Ubuntu 26.04** based, with the system **Python 3** installed
+The image is **Ubuntu 24.04** based, with the system **Python 3** installed
 into a **virtualenv** (all pip packages live there) plus **yt-dlp** and
 **ffmpeg**. It runs Gunicorn and stores downloads in a persistent volume.
 
@@ -81,8 +81,11 @@ sudo ./deploy-with-systemd.sh
 Optional:
 
 ```bash
-sudo PORT=8080 WORKERS=4 ./deploy-with-systemd.sh
+sudo PORT=8080 ./deploy-with-systemd.sh
 ```
+
+> Keep `WORKERS` at `1`. Job state lives in process memory, so multiple
+> workers would break `/api/status` and `/api/cancel` polling.
 
 Manage it afterwards:
 
@@ -109,8 +112,10 @@ under PM2, and (optionally) configures boot-start.
 Optional:
 
 ```bash
-PORT=8080 WORKERS=4 ./deploy-with-pm2.sh
+PORT=8080 ./deploy-with-pm2.sh
 ```
+
+> Keep `WORKERS` at `1` (same reason as above).
 
 Manage it afterwards:
 
@@ -143,7 +148,7 @@ On Windows, run this from **Git Bash** or **WSL**. Open
 |----------|---------|---------|
 | `PORT` | `6909` (dev) / `8000` (Docker) | Port to bind. |
 | `DOWNLOAD_DIR` | `./downloads` | Where finished files are saved. |
-| `GUNICORN_WORKERS` | `2`–`4` | Gunicorn worker count. |
+| `GUNICORN_WORKERS` | `1` | Gunicorn worker count. **Must stay 1** — job state is in process memory, so multiple workers break status/cancel polling. |
 
 ---
 
