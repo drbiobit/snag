@@ -211,6 +211,9 @@ async function poll() {
     els['progress-text'].textContent = `${job.progress.toFixed(0)}%`;
     els['status-message'].textContent = job.message;
 
+    // Bulk downloads: show the per-file progress list (file 1, file 2, ...).
+    renderFileList(job);
+
     // Handle the terminal states.
     if (['completed', 'error', 'cancelled'].includes(job.status)) {
         clearInterval(timer);
@@ -254,10 +257,54 @@ async function poll() {
 }
 
 /*
+ * Render the per-file progress list for a bulk download. The backend tracks
+ * how many files have started (file_index), the current file's title, and the
+ * latest percent per file (file_progress). Single downloads (no file_index)
+ * hide the list and just show a file counter.
+ */
+function renderFileList(job) {
+    const list = els['file-list'];
+    const counter = els['file-counter'];
+    if (!job.file_index) {
+        // Not a bulk job: hide the list, clear the counter.
+        list.style.display = 'none';
+        list.innerHTML = '';
+        counter.textContent = '';
+        return;
+    }
+
+    const total = job.file_index;               // files that have started
+    const progress = job.file_progress || {};
+    counter.textContent = `file ${total}`;
+
+    // Rebuild the rows. We keep the current title in a module-level cache so
+    // the title persists even on polls that don't carry it.
+    if (!renderFileList._titles) renderFileList._titles = {};
+    const titles = renderFileList._titles;
+    if (job.current_file) titles[total] = job.current_file;
+
+    let html = '';
+    for (let i = 1; i <= total; i++) {
+        const pct = progress[i];
+        const done = pct != null && pct >= 100;
+        const title = titles[i] || `file ${i}`;
+        const pctText = pct != null ? `${Math.round(pct)}%` : (done ? '✓' : '…');
+        html += `<li class="file-row${done ? ' done' : ''}" title="${title.replace(/"/g, '&quot;')}">`
+              + `<span class="file-idx">${i}</span>`
+              + `<span class="file-title">${title}</span>`
+              + `<span class="file-pct">${pctText}</span>`
+              + `</li>`;
+    }
+    list.innerHTML = html;
+    list.style.display = '';
+}
+
+/*
  * Reset the UI back to its initial, idle state.
  */
 function reset() {
     jobId = null;
+    if (renderFileList._titles) renderFileList._titles = {};
     els['status-section'].style.display = 'none';
     els['results-section'].style.display = 'none';
     els['download-btn'].style.display = '';
@@ -266,6 +313,9 @@ function reset() {
     els['progress-text'].textContent = '0%';
     els['status-message'].textContent = 'starting…';
     els['error-box'].style.display = 'none';
+    els['file-list'].style.display = 'none';
+    els['file-list'].innerHTML = '';
+    els['file-counter'].textContent = '';
 }
 
 /*
