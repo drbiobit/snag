@@ -16,6 +16,27 @@
     --accent-dim:#1f7a4d;
     --error:     #ff5555;
     --ok:        #3ddc84;
+
+    /* Font: the default is Ubuntu Mono (the app's original face). The user
+       can pick a different face on the settings page; font.js sets a
+       data-font attribute on <html> and the matching rule below overrides
+       this. Each stack falls back to system faces so it still looks right
+       if the web font hasn't loaded (or is blocked). */
+    --font: 'Ubuntu Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+}
+
+/* Alternative fonts, chosen on the settings page (persisted to localStorage). */
+html[data-font="jetbrains"] {
+    --font: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+}
+html[data-font="fira"] {
+    --font: 'Fira Code', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+}
+html[data-font="ibm"] {
+    --font: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+}
+html[data-font="source"] {
+    --font: 'Source Code Pro', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -25,7 +46,7 @@ html, body { height: 100%; }
 body {
     background: var(--bg);
     color: var(--text);
-    font-family: 'Ubuntu Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+    font-family: var(--font);
     font-size: 16px;
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
@@ -304,6 +325,17 @@ label .muted { font-weight: 400; }
     font-size: 26px;
     font-weight: 700;
     color: var(--accent);
+}
+
+/* Font preview chips on the settings page: show a sample glyph in the
+   candidate face so the user can see each option before picking it. */
+.font-chip {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
 }
 
 /* Per-file progress list for bulk downloads (file 1, file 2, ...) */

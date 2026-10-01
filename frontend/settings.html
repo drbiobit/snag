@@ -7,10 +7,11 @@
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Ubuntu+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Ubuntu+Mono:wght@400;700&family=JetBrains+Mono:wght@400;700&family=Fira+Code:wght@400;700&family=IBM+Plex+Mono:wght@400;700&family=Source+Code+Pro:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/style.css">
-    <!-- Apply the saved theme before paint to avoid a flash of the default. -->
+    <!-- Apply the saved theme + font before paint to avoid a flash of the default. -->
     <script src="/static/theme.js"></script>
+    <script src="/static/font.js"></script>
 </head>
 <body>
     <div class="layout">
@@ -72,9 +73,37 @@
                     </div>
                 </div>
 
+                <!-- Font picker: saved to localStorage, applied on every page -->
+                <div class="field">
+                    <label>font</label>
+                    <div class="swatches" id="font-swatches">
+                        <button class="swatch" data-font="ubuntu" title="Ubuntu Mono (default)">
+                            <span class="swatch-chip font-chip" style="font-family:'Ubuntu Mono',monospace;">Aa</span>
+                            <span class="swatch-name">ubuntu mono</span>
+                        </button>
+                        <button class="swatch" data-font="jetbrains" title="JetBrains Mono">
+                            <span class="swatch-chip font-chip" style="font-family:'JetBrains Mono',monospace;">Aa</span>
+                            <span class="swatch-name">jetbrains mono</span>
+                        </button>
+                        <button class="swatch" data-font="fira" title="Fira Code">
+                            <span class="swatch-chip font-chip" style="font-family:'Fira Code',monospace;">Aa</span>
+                            <span class="swatch-name">fira code</span>
+                        </button>
+                        <button class="swatch" data-font="ibm" title="IBM Plex Mono">
+                            <span class="swatch-chip font-chip" style="font-family:'IBM Plex Mono',monospace;">Aa</span>
+                            <span class="swatch-name">ibm plex mono</span>
+                        </button>
+                        <button class="swatch" data-font="source" title="Source Code Pro">
+                            <span class="swatch-chip font-chip" style="font-family:'Source Code Pro',monospace;">Aa</span>
+                            <span class="swatch-name">source code pro</span>
+                        </button>
+                    </div>
+                </div>
+
                 <p class="muted note">
-                    Your theme is stored in this browser and applied across the
-                    app, docs and settings pages.
+                    Your theme and font are stored in this browser and applied
+                    across the app, docs and settings pages. The default font is
+                    Ubuntu Mono.
                 </p>
             </section>
 
