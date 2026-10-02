@@ -28,8 +28,22 @@ const els = ['url', 'type', 'format', 'video-format', 'audio-format', 'audio-qua
 // Where the user's saved defaults live (set on the Settings page).
 const DEFAULTS_KEY = 'snag-defaults';
 
+// Where the active job id lives so a running download survives a page
+// refresh or a trip to another sidebar page (the server keeps the job
+// going in a background thread; we just need to keep polling it).
+const ACTIVE_JOB_KEY = 'snag-active-job';
+
 // The id of the job currently running (null when idle) and its poll timer.
 let jobId = null, timer = null;
+
+// Persist / restore the active job id across page loads.
+const saveActiveJob = id => {
+    if (id) localStorage.setItem(ACTIVE_JOB_KEY, id);
+    else localStorage.removeItem(ACTIVE_JOB_KEY);
+};
+const loadActiveJob = () => {
+    try { return localStorage.getItem(ACTIVE_JOB_KEY); } catch (e) { return null; }
+};
 
 // Show or hide an element.
 const show = (el, on) => el.style.display = on ? '' : 'none';
@@ -192,8 +206,10 @@ async function startDownload() {
     const d = await r.json();
     if (!d.success) { alert(d.error); return; }
 
-    // Remember the job and switch the UI into "downloading" mode.
+    // Remember the job (and persist it so a refresh keeps tracking it) and
+    // switch the UI into "downloading" mode.
     jobId = d.job_id;
+    saveActiveJob(jobId);
     setPill(true);
     show(els['status-section'], true);
     show(els['results-section'], false);
@@ -320,10 +336,32 @@ function renderFileList(job) {
 }
 
 /*
+ * Re-attach to a download that was already running before a page refresh or
+ * a trip to another page. The server kept the job alive in a background
+ * thread; we just need to remember its id and resume polling. If the job is
+ * already gone (finished/cancelled since we left), the first poll clears it.
+ */
+function restoreActiveJob() {
+    const id = loadActiveJob();
+    if (!id) return;
+    jobId = id;
+    // Show the progress panel immediately so the user isn't left staring at
+    // an empty form while we wait for the first status update.
+    show(els['status-section'], true);
+    show(els['results-section'], false);
+    els['download-btn'].style.display = 'none';
+    els['cancel-btn'].style.display = '';
+    setPill(true);
+    timer = setInterval(poll, 1000);
+    poll();
+}
+
+/*
  * Reset the UI back to its initial, idle state.
  */
 function reset() {
     jobId = null;
+    saveActiveJob(null);
     if (renderFileList._titles) renderFileList._titles = {};
     els['status-section'].style.display = 'none';
     els['results-section'].style.display = 'none';
@@ -447,3 +485,5 @@ toggleTemplate();
 toggleSubs();
 toggleThumbs();
 validateUrl();
+// Re-attach to a download that was running before a refresh / page change.
+restoreActiveJob();

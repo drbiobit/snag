@@ -62,6 +62,13 @@ jobs = {}
 # Lock so the jobs dict is only read/written by one thread at a time.
 jobs_lock = threading.Lock()
 
+# How long a finished/cancelled job stays in the table after it completes.
+# The browser polls once a second; if it navigates away or refreshes right as
+# a job finishes, its next status poll would otherwise hit a job that has
+# already been deleted and report "Job not found". Keeping finished jobs for
+# a short window lets a late or re-attached poll still read the final status.
+FINISHED_JOB_TTL = 120
+
 # How many /api/preview lookups may run at the same time (each one spawns
 # its own yt-dlp process, so an unbounded number would be a cheap DoS).
 MAX_PREVIEWS = 2
@@ -549,9 +556,26 @@ def run_job(job_id, url, d, audio_only, audio_format, audio_quality,
         job['status'], job['message'] = 'error', str(e)
         job['error'] = str(e)
     finally:
-        # Clean up: finished/cancelled jobs are removed from the table.
-        with jobs_lock:
-            jobs.pop(job_id, None)
+        # Mark the job finished but keep it in the table for FINISHED_JOB_TTL
+        # seconds so a late or re-attached poll can still read its final
+        # status (a refresh or page change right at completion would otherwise
+        # race the cleanup and see "Job not found"). prune_finished_jobs()
+        # drops it once the window has passed.
+        job['finished_at'] = time.time()
+
+
+def prune_finished_jobs():
+    """Drop finished/cancelled jobs that are older than FINISHED_JOB_TTL.
+
+    Called on every status poll so the in-memory table doesn't grow without
+    bound. Running jobs (no 'finished_at') are left alone.
+    """
+    now = time.time()
+    with jobs_lock:
+        stale = [jid for jid, j in jobs.items()
+                 if j.get('finished_at') and now - j['finished_at'] > FINISHED_JOB_TTL]
+        for jid in stale:
+            jobs.pop(jid, None)
 
 
 # ---------------------------------------------------------------------------
@@ -726,6 +750,7 @@ def download():
 @login_required
 def status(job_id):
     """Return the current progress/status of a job (polled by the browser)."""
+    prune_finished_jobs()
     job = jobs.get(job_id)
     if not job:
         return jsonify(success=False, error='Job not found'), 404
@@ -879,10 +904,10 @@ def delete_file(name):
 @app.route('/health')
 def health():
     """Liveness probe: reports that the app is up and how many jobs are running."""
-    # Every job in the table is live (finished/cancelled ones are removed in
-    # run_job's finally block), so the table size is the active-job count.
+    # Finished jobs linger in the table for FINISHED_JOB_TTL (so a late poll
+    # can still read their status), so count only the ones still running.
     with jobs_lock:
-        running = len(jobs)
+        running = sum(1 for j in jobs.values() if not j.get('finished_at'))
     return jsonify(
         status='ok',
         app='snag',
