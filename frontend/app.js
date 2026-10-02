@@ -10,6 +10,9 @@
 // Short helper to grab an element by id.
 const $ = id => document.getElementById(id);
 
+// Redirect to the login page if the session has expired.
+const handle401 = r => { if (r.status === 401) { window.location.href = '/login'; return true; } return false; };
+
 // Grab every element we touch, once, into a single object for easy access.
 const els = ['url', 'type', 'format', 'video-format', 'audio-format', 'audio-quality',
              'audio-only', 'output-template', 'resume', 'fragments', 'metadata', 'thumbnails',
@@ -140,6 +143,7 @@ async function validateUrl() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ url })
         });
+        if (handle401(r)) return;
         const d = await r.json();
         els.url.classList.toggle('success', d.valid);
         els.url.classList.toggle('error', !d.valid);
@@ -184,6 +188,7 @@ async function startDownload() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
     });
+    if (handle401(r)) return;
     const d = await r.json();
     if (!d.success) { alert(d.error); return; }
 
@@ -207,6 +212,7 @@ async function startDownload() {
  */
 async function poll() {
     const r = await fetch(`/api/status/${jobId}`);
+    if (handle401(r)) return;
     const d = await r.json();
     if (!d.success) {
         // Job is gone (server restarted): stop polling, don't leak the timer.
@@ -243,7 +249,9 @@ async function poll() {
             if (!files.length) {
                 // Older server that doesn't report job.files: use the newest
                 // file in the downloads folder instead.
-                const all = (await (await fetch('/api/downloads')).json()).downloads;
+                const dlRes = await fetch('/api/downloads');
+                if (handle401(dlRes)) return;
+                const all = (await dlRes.json()).downloads;
                 all.sort((a, b) => b.mtime - a.mtime);
                 files = all.map(f => f.name);
                 newestSize = all[0] ? all[0].size : null;
@@ -335,7 +343,8 @@ function reset() {
  */
 async function cancelDownload() {
     if (!jobId) return;
-    await fetch(`/api/cancel/${jobId}`, { method: 'POST' });
+    const r = await fetch(`/api/cancel/${jobId}`, { method: 'POST' });
+    handle401(r);
 }
 
 /*
@@ -367,6 +376,7 @@ async function preview() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ url })
         });
+        if (handle401(r)) return;
         const d = await r.json();
         if (!d.success) {
             els['preview-title'].textContent = d.error;

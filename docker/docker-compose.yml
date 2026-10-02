@@ -22,6 +22,10 @@ services:
       # Must stay 1: job state is in process memory, so multiple workers
       # would break /api/status and /api/cancel polling.
       GUNICORN_WORKERS: "1"
+      # Authentication: set both to enable login. Leave unset to use the
+      # in-browser first-visit setup instead (credentials stored in /data).
+      # SNAG_USER: admin
+      # SNAG_PASSWORD: change-me
     volumes:
       # Persist downloads across container rebuilds / restarts.
       - snag-data:/data

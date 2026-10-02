@@ -22,12 +22,16 @@ import os
 import re
 import json
 import uuid
+import hmac
+import secrets
+import hashlib
 import subprocess
 import threading
 import time
 from datetime import datetime
+from functools import wraps
 
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory, session, redirect, url_for
 
 # When the app started (used by /health to report uptime).
 STARTED_AT = time.time()
@@ -63,6 +67,97 @@ jobs_lock = threading.Lock()
 MAX_PREVIEWS = 2
 previews_active = 0
 previews_lock = threading.Lock()
+
+# ---------------------------------------------------------------------------
+# Authentication
+# ---------------------------------------------------------------------------
+
+# Where the user store lives (on the /data volume in Docker).
+DATA_DIR = os.environ.get('DATA_DIR') or os.path.join(BASE, 'data')
+os.makedirs(DATA_DIR, exist_ok=True)
+USERS_FILE = os.path.join(DATA_DIR, 'users.json')
+SECRET_FILE = os.path.join(DATA_DIR, 'secret')
+
+# Session signing key: env var wins, otherwise generate once and persist so
+# sessions survive container restarts.
+def _load_secret():
+    env = os.environ.get('SNAG_SECRET')
+    if env:
+        return env
+    if os.path.exists(SECRET_FILE):
+        with open(SECRET_FILE) as f:
+            return f.read().strip()
+    key = secrets.token_urlsafe(32)
+    with open(SECRET_FILE, 'w') as f:
+        f.write(key)
+    os.chmod(SECRET_FILE, 0o600)
+    return key
+
+app.secret_key = _load_secret()
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['PERMANENT_SESSION_LIFETIME'] = 86400 * 7  # 7 days
+
+# PBKDF2 parameters for password hashing.
+PBKDF2_ITERATIONS = 200_000
+
+def hash_password(password, salt=None):
+    """Hash a password with PBKDF2-SHA256. Returns (salt_hex, hash_hex)."""
+    if salt is None:
+        salt = secrets.token_bytes(16)
+    dk = hashlib.pbkdf2_hmac('sha256', password.encode(), salt, PBKDF2_ITERATIONS)
+    return salt.hex(), dk.hex()
+
+def verify_password(password, salt_hex, hash_hex):
+    """Constant-time check of a password against a stored salt+hash."""
+    _, computed = hash_password(password, bytes.fromhex(salt_hex))
+    return hmac.compare_digest(computed, hash_hex)
+
+def load_users():
+    """Load the user store. Returns {} if the file doesn't exist yet."""
+    if os.path.exists(USERS_FILE):
+        with open(USERS_FILE) as f:
+            return json.load(f)
+    return {}
+
+def save_users(users):
+    """Persist the user store (chmod 600 so only the app user can read it)."""
+    with open(USERS_FILE, 'w') as f:
+        json.dump(users, f, indent=2)
+    os.chmod(USERS_FILE, 0o600)
+
+def auth_enabled():
+    """True if credentials are configured (env var or saved user store)."""
+    if os.environ.get('SNAG_USER') and os.environ.get('SNAG_PASSWORD'):
+        return True
+    return bool(load_users())
+
+def check_credentials(username, password):
+    """Verify credentials against env vars first, then the user store."""
+    env_user = os.environ.get('SNAG_USER')
+    env_pass = os.environ.get('SNAG_PASSWORD')
+    if env_user and env_pass:
+        return hmac.compare_digest(username, env_user) and hmac.compare_digest(password, env_pass)
+    users = load_users()
+    entry = users.get(username)
+    if not entry:
+        # Burn the same CPU time as a real check to prevent timing attacks.
+        verify_password(password, '00' * 16, '00' * 64)
+        return False
+    return verify_password(password, entry['salt'], entry['hash'])
+
+def login_required(f):
+    """Decorator: require a valid session. 401 for APIs, redirect for pages."""
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        if not auth_enabled():
+            return f(*args, **kwargs)
+        if session.get('authed'):
+            return f(*args, **kwargs)
+        if request.path.startswith('/api/'):
+            return jsonify(success=False, error='unauthorized'), 401
+        return redirect(url_for('login_page'))
+    return wrapper
 
 # ---------------------------------------------------------------------------
 # yt-dlp option lookup tables
@@ -457,31 +552,89 @@ def run_job(job_id, url, d, audio_only, audio_format, audio_quality,
 # Routes
 # ---------------------------------------------------------------------------
 
+@app.route('/login')
+def login_page():
+    """Serve the login / first-setup page."""
+    if not auth_enabled():
+        return redirect(url_for('index'))
+    if session.get('authed'):
+        return redirect(url_for('index'))
+    return send_from_directory(app.static_folder, 'login.html')
+
+
+@app.route('/api/setup', methods=['POST'])
+def api_setup():
+    """First-run: create the initial account. Only works when no users exist."""
+    if auth_enabled():
+        return jsonify(success=False, error='account already exists'), 400
+    d = request.get_json(silent=True) or {}
+    username = (d.get('username') or '').strip()
+    password = d.get('password') or ''
+    if not username or not password:
+        return jsonify(success=False, error='username and password required'), 400
+    if len(password) < 4:
+        return jsonify(success=False, error='password must be at least 4 characters'), 400
+    salt, h = hash_password(password)
+    save_users({username: {'salt': salt, 'hash': h}})
+    session['authed'] = True
+    session['user'] = username
+    session.permanent = True
+    return jsonify(success=True)
+
+
+@app.route('/api/login', methods=['POST'])
+def api_login():
+    """Verify credentials and start a session."""
+    d = request.get_json(silent=True) or {}
+    username = (d.get('username') or '').strip()
+    password = d.get('password') or ''
+    if not username or not password:
+        return jsonify(success=False, error='username and password required'), 400
+    if not check_credentials(username, password):
+        return jsonify(success=False, error='invalid credentials'), 401
+    session['authed'] = True
+    session['user'] = username
+    session.permanent = True
+    return jsonify(success=True)
+
+
+@app.route('/api/logout', methods=['POST'])
+def api_logout():
+    """End the current session."""
+    session.clear()
+    return jsonify(success=True)
+
+
 @app.route('/')
+@login_required
 def index():
     """Serve the main UI page."""
     return send_from_directory(app.static_folder, 'index.html')
 
 
 @app.route('/docs')
+@login_required
 def docs():
     """Serve the in-app API documentation page."""
     return send_from_directory(app.static_folder, 'docs.html')
 
 
 @app.route('/settings')
+@login_required
 def settings():
     """Serve the settings page (theme options)."""
     return send_from_directory(app.static_folder, 'settings.html')
 
 
 @app.route('/downloads')
+@login_required
 def downloads_page():
     """Serve the downloads page (file manager)."""
     return send_from_directory(app.static_folder, 'downloads.html')
 
 
 @app.route('/api/validate', methods=['POST'])
+@login_required
 def validate():
     """Check whether the submitted string is a valid YouTube URL."""
     url = (request.get_json(silent=True) or {}).get('url', '').strip()
@@ -489,6 +642,7 @@ def validate():
 
 
 @app.route('/api/download', methods=['POST'])
+@login_required
 def download():
     """
     Start a download.
@@ -555,6 +709,7 @@ def download():
 
 
 @app.route('/api/status/<job_id>')
+@login_required
 def status(job_id):
     """Return the current progress/status of a job (polled by the browser)."""
     job = jobs.get(job_id)
@@ -564,6 +719,7 @@ def status(job_id):
 
 
 @app.route('/api/cancel/<job_id>', methods=['POST'])
+@login_required
 def cancel(job_id):
     """Flag a running job so its worker thread stops yt-dlp."""
     with jobs_lock:
@@ -575,6 +731,7 @@ def cancel(job_id):
 
 
 @app.route('/api/downloads')
+@login_required
 def list_downloads():
     """List all files currently in the downloads folder (with sizes + mtime)."""
     files = []
@@ -591,6 +748,7 @@ def list_downloads():
 
 
 @app.route('/api/preview', methods=['POST', 'GET'])
+@login_required
 def preview():
     """
     Show what's available for a URL before downloading.
@@ -680,6 +838,7 @@ def preview():
 
 
 @app.route('/downloads/<path:name>')
+@login_required
 def download_file(name):
     """Serve a finished file from the downloads folder."""
     try:
@@ -689,6 +848,7 @@ def download_file(name):
 
 
 @app.route('/api/delete/<path:name>', methods=['POST'])
+@login_required
 def delete_file(name):
     """Delete a file from the downloads folder."""
     # Resolve the real path and make sure it's strictly inside DOWNLOADS_DIR

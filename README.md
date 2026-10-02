@@ -32,14 +32,43 @@ python Main.py
 
 Open http://localhost:6909 (override with the `PORT` env var).
 
+## Authentication
+
+By default the app runs **open** (no login) — fine for a local machine or a
+trusted LAN. To enable login:
+
+**Option A — first-visit setup (no config needed):**
+Open the app in a browser. On first visit you'll see a "create account" page.
+Set a username and password; it's saved to `data/users.json` (on the `/data`
+volume in Docker). From then on, every visit requires sign-in.
+
+**Option B — environment variables (Docker / server):**
+```bash
+SNAG_USER=admin SNAG_PASSWORD=your-password python Main.py
+```
+or in `docker-compose.yml`:
+```yaml
+environment:
+  SNAG_USER: admin
+  SNAG_PASSWORD: your-password
+```
+Env vars take priority over the in-browser setup.
+
+To reset credentials: delete `data/users.json` (and unset the env vars) and
+reopen the app — the setup page appears again.
+
+See `.env.example` for all available variables.
+
 ## Project Layout
 
 ```
 Main.py                     # Flask app + yt-dlp job runner
 frontend/index.html         # UI
+frontend/login.html         # Login / first-setup page
 frontend/app.js             # Frontend logic
 frontend/style.css          # Styles (pure-black terminal theme)
-YT-DLP_FLAGS_REFERENCE.md   # yt-dlp CLI flag reference
+.env.example                # Environment variable reference
+data/                       # Users, session key (auto-created, git-ignored)
 downloads/                  # Output files
 ```
 
@@ -47,6 +76,9 @@ downloads/                  # Output files
 
 | Endpoint | Method | Description |
 |---|---|---|
+| `/api/setup` | POST | first-run: create the initial account |
+| `/api/login` | POST | `{username, password}` → start session |
+| `/api/logout` | POST | end the current session |
 | `/api/validate` | POST | `{url}` → validate YouTube URL + detect bulk |
 | `/api/download` | POST | start a download → `{job_id}` |
 | `/api/status/<job_id>` | GET | job progress/status |

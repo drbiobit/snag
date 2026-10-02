@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snag · sign in</title>
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="/static/theme.js"></script>
+</head>
+<body class="login-body">
+    <div class="login-wrap">
+        <div class="login-card">
+            <a class="brand" href="/" aria-label="snag home">
+                <span>snag<span class="caret">_</span></span>
+            </a>
+
+            <!-- First-run: create the initial account -->
+            <div id="setup-panel" class="login-panel" style="display:none;">
+                <h2>create account</h2>
+                <p class="muted">first run — set a username and password</p>
+                <form id="setup-form">
+                    <div class="field">
+                        <label for="setup-user">username</label>
+                        <input type="text" id="setup-user" autocomplete="username" spellcheck="false" required>
+                    </div>
+                    <div class="field">
+                        <label for="setup-pass">password</label>
+                        <input type="password" id="setup-pass" autocomplete="new-password" required minlength="4">
+                    </div>
+                    <div class="field">
+                        <label for="setup-pass2">confirm password</label>
+                        <input type="password" id="setup-pass2" autocomplete="new-password" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary" id="setup-btn">create</button>
+                </form>
+                <p class="login-error" id="setup-error" role="alert"></p>
+            </div>
+
+            <!-- Normal: sign in -->
+            <div id="login-panel" class="login-panel">
+                <h2>sign in</h2>
+                <p class="muted">enter your credentials</p>
+                <form id="login-form">
+                    <div class="field">
+                        <label for="login-user">username</label>
+                        <input type="text" id="login-user" autocomplete="username" spellcheck="false" required>
+                    </div>
+                    <div class="field">
+                        <label for="login-pass">password</label>
+                        <input type="password" id="login-pass" autocomplete="current-password" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary" id="login-btn">unlock</button>
+                </form>
+                <p class="login-error" id="login-error" role="alert"></p>
+            </div>
+        </div>
+    </div>
+    <script src="/static/login.js"></script>
+</body>
+</html>

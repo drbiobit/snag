@@ -8,6 +8,9 @@
 // Short helper to grab an element by id.
 const $ = id => document.getElementById(id);
 
+// Redirect to the login page if the session has expired.
+const handle401 = r => { if (r.status === 401) { window.location.href = '/login'; return true; } return false; };
+
 // Format a byte count as a human-readable string (e.g. "5.12 MB").
 function formatSize(bytes) {
     if (!bytes) return '0 B';
@@ -31,6 +34,7 @@ function row(f) {
 // Load the file list from the backend and render it.
 async function load() {
     const r = await fetch('/api/downloads');
+    if (handle401(r)) return;
     const d = await r.json();
     const list = $('dl-list');
     list.innerHTML = '';
@@ -48,7 +52,8 @@ async function load() {
 // Delete a file (with confirmation) and refresh the list.
 async function del(name) {
     if (!confirm(`Delete "${name}"?`)) return;
-    await fetch(`/api/delete/${encodeURIComponent(name)}`, { method: 'POST' });
+    const r = await fetch(`/api/delete/${encodeURIComponent(name)}`, { method: 'POST' });
+    if (handle401(r)) return;
     load();
 }
 

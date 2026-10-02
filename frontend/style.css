@@ -774,3 +774,56 @@ footer a:hover { color: var(--accent); }
         animation-iteration-count: 1 !important;
     }
 }
+
+/* --------------------------------------------------------------------------
+    Login / first-setup page
+    -------------------------------------------------------------------------- */
+.login-body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 20px;
+}
+.login-wrap {
+    width: 100%;
+    max-width: 360px;
+}
+.login-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 32px 28px;
+}
+.login-card .brand {
+    display: inline-flex;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    color: var(--text);
+    text-decoration: none;
+    margin-bottom: 24px;
+}
+.login-card .brand .caret { color: var(--accent); }
+.login-panel h2 {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text);
+    margin-bottom: 4px;
+}
+.login-panel .muted {
+    display: block;
+    margin-bottom: 18px;
+}
+.login-panel .btn {
+    width: 100%;
+    margin-top: 4px;
+}
+.login-error {
+    color: var(--error);
+    font-size: 12px;
+    margin-top: 10px;
+    min-height: 16px;
+}

@@ -41,6 +41,9 @@ logs/
 .env
 .env.local
 
+# App data (user store, session key)
+data/
+
 # Downloads (optional - uncomment if you want to exclude)
 # downloads/
 
