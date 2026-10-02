@@ -12,11 +12,13 @@ async function init() {
         const r = await fetch('/api/auth-status');
         const d = await r.json();
         if (d.authed) { window.location.href = '/'; return; }
-        if (d.needs_setup) {
-            $('setup-panel').style.display = '';
-            $('login-panel').style.display = 'none';
+        if (!d.needs_setup) {
+            // Account already exists: show sign-in, hide setup.
+            $('setup-panel').style.display = 'none';
+            $('login-panel').style.display = '';
         }
-    } catch { /* server unreachable */ }
+        // If needs_setup is true, the setup panel is already visible (default).
+    } catch { /* server unreachable — stay on setup form */ }
 }
 
 $('setup-form').addEventListener('submit', async e => {

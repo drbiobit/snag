@@ -15,8 +15,8 @@
                 <span>snag<span class="caret">_</span></span>
             </a>
 
-            <!-- First-run: create the initial account -->
-            <div id="setup-panel" class="login-panel" style="display:none;">
+            <!-- First-run: create the initial account (shown by default) -->
+            <div id="setup-panel" class="login-panel">
                 <h2>create account</h2>
                 <p class="muted">first run — set a username and password</p>
                 <form id="setup-form">
@@ -37,8 +37,8 @@
                 <p class="login-error" id="setup-error" role="alert"></p>
             </div>
 
-            <!-- Normal: sign in -->
-            <div id="login-panel" class="login-panel">
+            <!-- Normal: sign in (hidden until JS confirms an account exists) -->
+            <div id="login-panel" class="login-panel" style="display:none;">
                 <h2>sign in</h2>
                 <p class="muted">enter your credentials</p>
                 <form id="login-form">
