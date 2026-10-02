@@ -1,9 +1,52 @@
 # Snag
 
-**Grab videos, playlists, channels and audio — from your browser.**
+**A minimal, self-hosted web UI for [yt-dlp](https://github.com/yt-dlp/yt-dlp) — paste a link, pick your options, and watch it download with live progress.**
 
-Snag is a minimal, self-hosted web interface for [yt-dlp](https://github.com/yt-dlp/yt-dlp).
-Paste a link, pick your options, and watch it download with live progress.
+[![CI](https://github.com/drbiobit/snag/actions/workflows/pages.yml/badge.svg)](https://github.com/drbiobit/snag/actions/workflows/pages.yml)
+[![Docker](https://img.shields.io/badge/docker-ghcr.io%2Fdrbiobit%2Fsnag-2496ed)](https://ghcr.io/drbiobit/snag)
+[![License: MIT](https://img.shields.io/badge/License-MIT-7d8ce8)](LICENSE)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-4f8cc9)](https://www.python.org/)
+[![Self-hosted](https://img.shields.io/badge/self--hosted-yes-2ea44f)](#quickstart)
+
+![Snag — grab videos, playlists & audio from your browser](docs-assets/snag-ui.png)
+
+## Why Snag?
+
+- **No CLI, no build step.** The whole backend is one Python file and the
+  frontend is plain HTML/CSS/JS — read it in ten minutes, hack on it today.
+- **Up in 30 seconds.** A prebuilt Docker image is published on every push;
+  one `docker run` and you're downloading.
+- **Self-hosted and private.** Your downloads never touch a third-party
+  server. Runs on a VPS, a home server, or your laptop.
+- **Bulk-friendly.** Single videos, whole playlists, channels, or user
+  profiles in one go — resumable, cancelable, up to 2 concurrent.
+
+## Quickstart
+
+### Docker (fastest, no prerequisites)
+
+```bash
+docker run -d --name snag \
+  -p 8000:8000 \
+  -v snag-data:/data \
+  ghcr.io/drbiobit/snag:latest
+```
+
+Open http://localhost:8000. On first visit you'll be asked to **create an
+account** (or set `SNAG_USER` / `SNAG_PASSWORD` to skip it — see
+[Authentication](#authentication)).
+
+### From source
+
+Requires Python 3.10+, [yt-dlp](https://github.com/yt-dlp/yt-dlp), and
+[ffmpeg](https://ffmpeg.org/) on your `PATH`.
+
+```bash
+pip install -r requirements.txt
+python snag.py
+```
+
+Open http://localhost:6909 (override with the `PORT` env var).
 
 ## Features
 
@@ -17,52 +60,68 @@ Paste a link, pick your options, and watch it download with live progress.
 - ✏️ **Output templating** — custom `%(title)s`-style naming for single downloads
 - ⚡ Real-time progress, up to 2 concurrent downloads, cancel anytime
 
+## Installation
+
+| Method | Prerequisites | Command | Best for |
+|---|---|---|---|
+| **Docker** | Docker | `docker run … ghcr.io/drbiobit/snag:latest` | Quick launch, servers |
+| **Docker Compose** | Docker | `docker compose up -d` (see [`docker/`](docker/)) | Persistent setup with env vars |
+| **systemd** | Python 3, ffmpeg, yt-dlp | `sudo ./deploy-with-systemd.sh` | A Linux VPS you own (recommended) |
+| **PM2** | Node.js, Python 3 | `./deploy-with-pm2.sh` | A server without Docker/systemd |
+| **Mac / Windows** | Python 3, ffmpeg, yt-dlp | `./deploy-for-win-mac.sh` | Local use on your own machine |
+| **From source** | Python 3, ffmpeg, yt-dlp | `python snag.py` | Development / tinkerers |
+
+Full step-by-step instructions for every method (plus HTTPS and
+troubleshooting) live in the [Deployment guide](https://drbiobit.github.io/snag/deployment).
+
+## Usage
+
+**Single video, 1080p MP4:**
+
+```
+paste the video URL → format: 1080 → output: mp4 → download
+```
+
+**Whole playlist as MP3 (320 kbps):**
+
+```
+paste the playlist URL → type: bulk → audio: mp3 @ 320k → download
+```
+
+**Channel archive with metadata embedded:**
+
+```
+paste the channel URL → type: bulk → embed metadata: on → download
+```
+
+Every option maps to a documented yt-dlp flag — see the
+[yt-dlp Flags Reference](https://drbiobit.github.io/snag/yt-dlp-flags).
+
+## Snag vs. the alternatives
+
+| | **Snag** | **yt-dlp (CLI)** | **cobalt** |
+|---|---|---|---|
+| Interface | Web UI | Terminal | Web UI |
+| Setup | 1 `docker run` | `pip install yt-dlp` | Self-host or use a public instance |
+| Bulk (playlists/channels) | ✅ | ✅ | Limited |
+| Audio extraction | ✅ 5 codecs | ✅ | ✅ |
+| Full flag coverage | ✅ (documented) | ✅ all | ❌ opinionated |
+| Self-hosted / private | ✅ | ✅ | ✅ |
+
+**Use yt-dlp directly** if you live in the terminal and want every flag.
+**Use Snag** if you want that same power in a browser with zero CLI.
+**Use cobalt** if you want a minimal, opinionated UI and don't need bulk or
+fine-grained options.
+
 ## Documentation
 
 Full docs are published on GitHub Pages → **[drbiobit.github.io/snag](https://drbiobit.github.io/snag/)**
 
-- [Deployment Guide](https://drbiobit.github.io/snag/DEPLOYMENT.md) — Docker, systemd, PM2, Mac/Windows
-- [Code Reference](https://drbiobit.github.io/snag/CODE.md) — function-by-function walkthrough of `snag.py` + frontend
-- [yt-dlp Flags Reference](https://drbiobit.github.io/snag/yt-dlp_flags_refrence.md) — every flag Snag exposes
-
-## Requirements
-
-- Python 3.10+
-- [yt-dlp](https://github.com/yt-dlp/yt-dlp) on your PATH (`pip install yt-dlp` or `brew install yt-dlp`)
-- ffmpeg (for merging, MP3 conversion & metadata embedding)
-
-## Install & Run
-
-```bash
-pip install -r requirements.txt
-python snag.py
-```
-
-Open http://localhost:6909 (override with the `PORT` env var).
-
-## Docker (prebuilt image)
-
-A ready-to-launch image is built on every push and published to GitHub
-Container Registry — no need to clone or build anything:
-
-```bash
-# Pull the prebuilt image
-docker pull ghcr.io/drbiobit/snag:latest
-
-# Run it (downloads persist in a named volume, app on port 8000)
-docker run -d --name snag \
-  -p 8000:8000 \
-  -v snag-data:/data \
-  ghcr.io/drbiobit/snag:latest
-
-# Then open http://localhost:8000
-```
-
-Pin a specific version instead of `latest` by using a tag, e.g.
-`ghcr.io/drbiobit/snag:v1.0.0` (tags are cut from `v*` git tags).
-
-> The image is public — `docker pull` works without logging in. If you ever
-> get an "unauthorized" error, run `docker login ghcr.io` once.
+- [Deployment Guide](https://drbiobit.github.io/snag/deployment) — Docker, systemd, PM2, Mac/Windows, HTTPS
+- [Docker Deep-Dive](https://drbiobit.github.io/snag/docker) — image internals, env vars, volumes, Compose, updates
+- [Configuration](https://drbiobit.github.io/snag/configuration) — every env var, the auth model, and the full HTTP API
+- [Code Reference](https://drbiobit.github.io/snag/code-reference) — file-by-file walkthrough of `snag.py` + frontend
+- [yt-dlp Flags Reference](https://drbiobit.github.io/snag/yt-dlp-flags) — every flag Snag exposes
 
 ## Authentication
 
@@ -122,7 +181,8 @@ in-browser account — the setup page is skipped entirely.
   lifetime). The signing key is auto-generated on first start and persisted
   to `data/secret` so sessions survive restarts.
 - `/health` is always open (no auth) so container healthchecks work.
-- See `.env.example` for all available variables.
+- See `.env.example` for all available variables, and [SECURITY.md](SECURITY.md)
+  for how to report a vulnerability.
 
 ## Project Layout
 
@@ -176,6 +236,16 @@ downloads/                  # Output files
 - **Multithreaded fragments** speed up DASH/HLS downloads; leave "off" for
   progressive (non-fragment) streams.
 
+## Contributing
+
+Contributions are welcome. The short version:
+
+1. Read [CONTRIBUTING.md](CONTRIBUTING.md) for dev setup and the PR process.
+2. Keep the backend a single file and the frontend build-step-free.
+3. Run the app locally and verify your change before opening a PR.
+
+Please also read our [Code of Conduct](CODE_OF_CONDUCT.md).
+
 ## License
 
-MIT — see [LICENSE](LICENSE).
+[MIT](LICENSE) — see [LICENSE](LICENSE).
