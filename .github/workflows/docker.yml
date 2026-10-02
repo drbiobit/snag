@@ -76,12 +76,18 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       # Build and push with the computed tags.
+      #
+      # `platforms` builds a multi-arch image so it runs natively on both
+      # Intel (amd64) and Apple Silicon / ARM (arm64) machines. buildx
+      # cross-compiles the apt/pip layers for each arch; the pure-Python app
+      # code is arch-independent so this is safe.
       - name: Build and push image
         uses: docker/build-push-action@v6
         with:
           context: .
           file: ./Dockerfile
           push: true
+          platforms: linux/amd64,linux/arm64
           tags: ${{ steps.tags.outputs.tags }}
           # Reuse layers between runs to keep builds fast.
           cache-from: type=gha
