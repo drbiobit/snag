@@ -34,30 +34,63 @@ Open http://localhost:6909 (override with the `PORT` env var).
 
 ## Authentication
 
-By default the app runs **open** (no login) — fine for a local machine or a
-trusted LAN. To enable login:
+The app supports two ways to set a password. Pick whichever fits your setup.
 
-**Option A — first-visit setup (no config needed):**
-Open the app in a browser. On first visit you'll see a "create account" page.
-Set a username and password; it's saved to `data/users.json` (on the `/data`
-volume in Docker). From then on, every visit requires sign-in.
+### Option A — create an account in the browser (no config)
 
-**Option B — environment variables (Docker / server):**
+Best for local use or when you don't want to touch any files.
+
+1. Start the app (`python Main.py` or `docker compose up -d`).
+2. Open http://localhost:6909 (or http://localhost:8000 for Docker).
+3. You'll be redirected to a **"create account"** page.
+4. Enter a username and password, confirm the password, click **create**.
+5. You're logged in. From now on every visit requires sign-in.
+
+The credentials are stored in `data/users.json` (on the `/data` volume in
+Docker) and survive restarts and container rebuilds.
+
+### Option B — set credentials via environment variables
+
+Best for Docker / server deployments where you want fixed credentials set
+once at deploy time.
+
+**Local:**
 ```bash
-SNAG_USER=admin SNAG_PASSWORD=your-password python Main.py
+SNAG_USER=admin SNAG_PASSWORD=your-strong-password python Main.py
 ```
-or in `docker-compose.yml`:
+
+**Docker Compose** — edit `docker/docker-compose.yml`:
 ```yaml
 environment:
   SNAG_USER: admin
-  SNAG_PASSWORD: your-password
+  SNAG_PASSWORD: your-strong-password
 ```
-Env vars take priority over the in-browser setup.
 
-To reset credentials: delete `data/users.json` (and unset the env vars) and
-reopen the app — the setup page appears again.
+**Plain Docker:**
+```bash
+docker run -d --name snag -p 8000:8000 \
+  -e SNAG_USER=admin -e SNAG_PASSWORD=your-strong-password \
+  -v snag-data:/data snag
+```
 
-See `.env.example` for all available variables.
+When both `SNAG_USER` and `SNAG_PASSWORD` are set, they **override** any
+in-browser account — the setup page is skipped entirely.
+
+### Resetting credentials
+
+- **Option A:** delete `data/users.json` (or the `snag-data` volume) and
+  reopen the app — the "create account" page appears again.
+- **Option B:** unset the env vars, delete `data/users.json`, and restart.
+
+### Security notes
+
+- Passwords are hashed with **PBKDF2-SHA256** (200 000 iterations, random
+  per-user salt). The plaintext is never stored.
+- Sessions use signed Flask cookies (`HttpOnly`, `SameSite=Lax`, 7-day
+  lifetime). The signing key is auto-generated on first start and persisted
+  to `data/secret` so sessions survive restarts.
+- `/health` is always open (no auth) so container healthchecks work.
+- See `.env.example` for all available variables.
 
 ## Project Layout
 
