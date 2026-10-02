@@ -1,0 +1,8 @@
+# Docusaurus build output + local artifacts (never commit these)
+build/
+.docusaurus/
+node_modules/
+*.tsbuildinfo
+
+# OS
+.DS_Store

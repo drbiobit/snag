@@ -1,16 +1,14 @@
 # ===========================================================================
-# Publish the docs/ folder as a GitHub Pages site.
+# Build the Snag docs site (Docusaurus) and publish it to GitHub Pages.
 #
 # Result: https://drbiobit.github.io/snag/
-#   -> index.md            (landing page with links to each guide)
-#   -> DEPLOYMENT.md
-#   -> CODE.md
-#   -> yt-dlp_flags_refrence.md
+#   A full Docusaurus site with a sidebar, client-side search, and the
+#   guides that live in docusaurus/docs/.
 #
 # Triggered on every push to main (and on demand from the Actions tab).
 # The "Deploy to GitHub Pages" job needs the `pages` permission and the
-# environment "github-pages" - both are set up automatically the first time
-# you enable Pages in the repo Settings -> Pages -> "Source: GitHub Actions".
+# "github-pages" environment - both are already enabled on this repo
+# (Settings -> Pages -> Source: GitHub Actions).
 # ===========================================================================
 
 name: Pages
@@ -18,6 +16,10 @@ name: Pages
 on:
   push:
     branches: [main]
+    paths:
+      # Only rebuild the site when something that affects it changes.
+      - 'docusaurus/**'
+      - '.github/workflows/pages.yml'
   workflow_dispatch:
 
 # `pages` permission lets the deploy job write to the Pages site.
@@ -33,10 +35,13 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # Prepare the site. The docs are plain Markdown, so we simply publish the
-  # docs/ folder as the Pages artifact; GitHub renders the .md files to HTML.
+  # Build the Docusaurus site into a static bundle.
   build:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        # Everything for the site lives in the docusaurus/ subfolder.
+        working-directory: docusaurus
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -45,13 +50,24 @@ jobs:
         id: pages
         uses: actions/configure-pages@v5
 
-      # The docs are plain Markdown, so there's nothing to "build" - we just
-      # publish the docs/ folder as-is. GitHub Pages renders the .md files
-      # into HTML pages automatically.
-      - name: Upload docs as the Pages artifact
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: docusaurus/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build site
+        run: npm run build
+
+      # Upload the build output (docusaurus/build) as the Pages artifact.
+      - name: Upload build artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: docs/
+          path: docusaurus/build
 
   # Deploy the built site to GitHub Pages.
   deploy:

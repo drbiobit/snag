@@ -1,0 +1,7 @@
+{
+  "extends": "@docusaurus/core/tsconfig",
+  "compilerOptions": {
+    "baseUrl": "."
+  },
+  "include": [".docusaurus/**/*", "**/*.ts", "**/*.tsx"]
+}

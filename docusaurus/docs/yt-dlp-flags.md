@@ -1,3 +1,8 @@
+---
+title: yt-dlp Flags Reference
+sidebar_position: 3
+---
+
 # YT-DLP Command Line Flags Reference
 
 ## Overview
@@ -27,7 +32,7 @@ This document provides a comprehensive reference of all yt-dlp command-line flag
 
 ---
 
-## 🎛️ General Options
+## 🎛️ General Options {#general-options}
 
 | Flag | Description |
 |------|-------------|
@@ -46,7 +51,7 @@ This document provides a comprehensive reference of all yt-dlp command-line flag
 
 ---
 
-## 🎬 Video Selection
+## 🎬 Video Selection {#video-selection}
 
 | Flag | Description |
 |------|-------------|
@@ -71,7 +76,7 @@ This document provides a comprehensive reference of all yt-dlp command-line flag
 
 ---
 
-## 📥 Download Options
+## 📥 Download Options {#download-options}
 
 | Flag | Description |
 |------|-------------|
@@ -99,7 +104,7 @@ This document provides a comprehensive reference of all yt-dlp command-line flag
 
 ---
 
-## 📁 Filesystem Options
+## 📁 Filesystem Options {#filesystem-options}
 
 | Flag | Description |
 |------|-------------|
@@ -137,13 +142,13 @@ This document provides a comprehensive reference of all yt-dlp command-line flag
 | `--no-cookies` | Do not read/dump cookies from/to file (default) |
 | `--cookies-from-browser BROWSER` | Load cookies from browser (brave, chrome, chromium, edge, firefox, opera, safari, vivaldi, whale) |
 | `--no-cookies-from-browser` | Do not load cookies from browser (default) |
-| `--cache-dir DIR` | Location for yt-dlp cache files (default: ${XDG_CACHE_HOME}/yt-dlp) |
+| `--cache-dir DIR` | Location for yt-dlp cache files (default: `${XDG_CACHE_HOME}`/yt-dlp) |
 | `--no-cache-dir` | Disable filesystem caching |
 | `--rm-cache-dir` | Delete all filesystem cache files |
 
 ---
 
-## 🎨 Format Selection
+## 🎨 Format Selection {#format-selection}
 
 | Flag | Description |
 |------|-------------|
@@ -184,7 +189,7 @@ This document provides a comprehensive reference of all yt-dlp command-line flag
 
 ---
 
-## 🎵 Post-Processing Options
+## 🎵 Post-Processing Options {#post-processing-options}
 
 | Flag | Description |
 |------|-------------|
@@ -241,7 +246,7 @@ yt-dlp -x --audio-format mp3 --audio-quality 4 --postprocessor-args ExtractAudio
 
 ---
 
-## 🖼️ Thumbnail Options
+## 🖼️ Thumbnail Options {#thumbnail-options}
 
 | Flag | Description |
 |------|-------------|
@@ -252,7 +257,7 @@ yt-dlp -x --audio-format mp3 --audio-quality 4 --postprocessor-args ExtractAudio
 
 ---
 
-## 📝 Subtitle Options
+## 📝 Subtitle Options {#subtitle-options}
 
 | Flag | Description |
 |------|-------------|
@@ -266,7 +271,7 @@ yt-dlp -x --audio-format mp3 --audio-quality 4 --postprocessor-args ExtractAudio
 
 ---
 
-## 🔐 Authentication Options
+## 🔐 Authentication Options {#authentication-options}
 
 | Flag | Description |
 |------|-------------|
@@ -287,7 +292,7 @@ yt-dlp -x --audio-format mp3 --audio-quality 4 --postprocessor-args ExtractAudio
 
 ---
 
-## 🔊 Verbosity & Simulation
+## 🔊 Verbosity & Simulation {#verbosity--simulation}
 
 | Flag | Description |
 |------|-------------|
@@ -315,7 +320,7 @@ yt-dlp -x --audio-format mp3 --audio-quality 4 --postprocessor-args ExtractAudio
 
 ---
 
-## 🛠️ Workarounds
+## 🛠️ Workarounds {#workarounds}
 
 | Flag | Description |
 |------|-------------|
@@ -332,7 +337,7 @@ yt-dlp -x --audio-format mp3 --audio-quality 4 --postprocessor-args ExtractAudio
 
 ---
 
-## 📺 Extractor Options
+## 📺 Extractor Options {#extractor-options}
 
 | Flag | Description |
 |------|-------------|
@@ -345,7 +350,7 @@ yt-dlp -x --audio-format mp3 --audio-quality 4 --postprocessor-args ExtractAudio
 
 ---
 
-## 🎁 SponsorBlock Options
+## 🎁 SponsorBlock Options {#sponsorblock-options}
 
 | Flag | Description |
 |------|-------------|
