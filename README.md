@@ -32,6 +32,30 @@ python snag.py
 
 Open http://localhost:6909 (override with the `PORT` env var).
 
+## Docker (prebuilt image)
+
+A ready-to-launch image is built on every push and published to GitHub
+Container Registry — no need to clone or build anything:
+
+```bash
+# Pull the prebuilt image
+docker pull ghcr.io/drbiobit/snag:latest
+
+# Run it (downloads persist in a named volume, app on port 8000)
+docker run -d --name snag \
+  -p 8000:8000 \
+  -v snag-data:/data \
+  ghcr.io/drbiobit/snag:latest
+
+# Then open http://localhost:8000
+```
+
+Pin a specific version instead of `latest` by using a tag, e.g.
+`ghcr.io/drbiobit/snag:v1.0.0` (tags are cut from `v*` git tags).
+
+> The image is public — `docker pull` works without logging in. If you ever
+> get an "unauthorized" error, run `docker login ghcr.io` once.
+
 ## Authentication
 
 The app supports two ways to set a password. Pick whichever fits your setup.
