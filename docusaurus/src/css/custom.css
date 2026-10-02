@@ -1,25 +1,32 @@
 /* Snag docs - custom theme.
-   Tweak the accent color and a few spacing values here. */
+   Green accent (matches the app icon) + Ubuntu Mono, to match the
+   pure-black terminal feel of the Snag UI. */
+
+@import url('https://fonts.googleapis.com/css2?family=Ubuntu+Mono:wght@400;700&display=swap');
 
 :root {
-  --ifm-color-primary: #0ea5e9;
-  --ifm-color-primary-dark: #0284c7;
-  --ifm-color-primary-darker: #0369a1;
-  --ifm-color-primary-darkest: #075985;
-  --ifm-color-primary-light: #38bdf8;
-  --ifm-color-primary-lighter: #7dd3fc;
-  --ifm-color-primary-lightest: #bae6fd;
+  --ifm-color-primary: #3ddc84;
+  --ifm-color-primary-dark: #2fc773;
+  --ifm-color-primary-darker: #2ab86a;
+  --ifm-color-primary-darkest: #229a56;
+  --ifm-color-primary-light: #4ee091;
+  --ifm-color-primary-lighter: #5ae49c;
+  --ifm-color-primary-lightest: #86efac;
   --ifm-code-font-size: 95%;
+  --ifm-font-family-base: 'Ubuntu Mono', ui-monospace, SFMono-Regular, Menlo,
+    Monaco, Consolas, monospace;
+  --ifm-font-family-monospace: 'Ubuntu Mono', ui-monospace, SFMono-Regular,
+    Menlo, Monaco, Consolas, monospace;
   --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
 }
 
 [data-theme='dark'] {
-  --ifm-color-primary: #38bdf8;
-  --ifm-color-primary-dark: #0ea5e9;
-  --ifm-color-primary-darker: #0284c7;
-  --ifm-color-primary-darkest: #075985;
-  --ifm-color-primary-light: #7dd3fc;
-  --ifm-color-primary-lighter: #bae6fd;
-  --ifm-color-primary-lightest: #e0f2fe;
+  --ifm-color-primary: #3ddc84;
+  --ifm-color-primary-dark: #2fc773;
+  --ifm-color-primary-darker: #2ab86a;
+  --ifm-color-primary-darkest: #229a56;
+  --ifm-color-primary-light: #4ee091;
+  --ifm-color-primary-lighter: #5ae49c;
+  --ifm-color-primary-lightest: #86efac;
   --docusaurus-highlighted-code-line-bg: rgba(255, 255, 255, 0.1);
 }
