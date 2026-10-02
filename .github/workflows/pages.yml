@@ -1,0 +1,70 @@
+# ===========================================================================
+# Publish the docs/ folder as a GitHub Pages site.
+#
+# Result: https://drbiobit.github.io/snag/
+#   -> index.md            (landing page with links to each guide)
+#   -> DEPLOYMENT.md
+#   -> CODE.md
+#   -> yt-dlp_flags_refrence.md
+#
+# Triggered on every push to main (and on demand from the Actions tab).
+# The "Deploy to GitHub Pages" job needs the `pages` permission and the
+# environment "github-pages" - both are set up automatically the first time
+# you enable Pages in the repo Settings -> Pages -> "Source: GitHub Actions".
+# ===========================================================================
+
+name: Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# `pages` permission lets the deploy job write to the Pages site.
+# `id-token` is required for the official pages deploy action.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Only one Pages deploy should be in flight at a time.
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  # Build the site. We use the official Jekyll action so GitHub applies the
+  # same rendering (Markdown -> HTML, relative links, etc.) as it would for
+  # any Pages site. `src: docs` tells it to build from the docs folder.
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Pages
+        id: pages
+        uses: actions/configure-pages@v5
+
+      - name: Build with Jekyll
+        uses: actions/jekyll-build-action@v1
+        with:
+          source: docs/
+          destination: dest/
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dest/
+
+  # Deploy the built site to GitHub Pages.
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
