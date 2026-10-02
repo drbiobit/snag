@@ -126,9 +126,12 @@ function loadDefaults() {
  */
 async function validateUrl() {
     const url = els.url.value.trim();
+    const hint = $('url-hint');
     if (!url) {
         els['download-btn'].disabled = true;
         els.url.classList.remove('success', 'error');
+        els.url.removeAttribute('aria-invalid');
+        if (hint) hint.textContent = '';
         return;
     }
     try {
@@ -140,6 +143,8 @@ async function validateUrl() {
         const d = await r.json();
         els.url.classList.toggle('success', d.valid);
         els.url.classList.toggle('error', !d.valid);
+        els.url.setAttribute('aria-invalid', d.valid ? 'false' : 'true');
+        if (hint) hint.textContent = d.valid ? 'valid link' : 'this link doesn\u2019t look right';
         els['download-btn'].disabled = !d.valid;
     } catch {
         els['download-btn'].disabled = true;
@@ -203,13 +208,20 @@ async function startDownload() {
 async function poll() {
     const r = await fetch(`/api/status/${jobId}`);
     const d = await r.json();
-    if (!d.success) return; // job already cleaned up - stop silently
+    if (!d.success) {
+        // Job is gone (server restarted): stop polling, don't leak the timer.
+        if (timer) { clearInterval(timer); timer = null; }
+        reset();
+        return;
+    }
     const job = d.job;
 
     // Update the progress bar and text.
     els['progress-fill'].style.width = `${job.progress}%`;
     els['progress-text'].textContent = `${job.progress.toFixed(0)}%`;
     els['status-message'].textContent = job.message;
+    const bar = $('progress-bar');
+    if (bar) bar.setAttribute('aria-valuenow', Math.round(job.progress));
 
     // Bulk downloads: show the per-file progress list (file 1, file 2, ...).
     renderFileList(job);

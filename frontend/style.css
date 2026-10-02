@@ -11,7 +11,7 @@
     --border-2:  #2a2a2a;   /* stronger hairline on hover/focus */
     --text:      #e6e6e6;   /* primary text */
     --muted:     #6b6b6b;   /* secondary text */
-    --faint:     #3a3a3a;   /* tertiary / placeholders */
+    --faint:     #565656;   /* tertiary / placeholders (AA contrast on black) */
     --accent:    #3ddc84;   /* terminal green */
     --accent-dim:#1f7a4d;
     --error:     #ff5555;
@@ -218,6 +218,14 @@ input:focus, select:focus {
 /* live URL validation state */
 input.success { border-color: var(--accent-dim); }
 input.error   { border-color: var(--error); }
+
+/* live hint under the url field, announced to screen readers (aria-live) */
+.hint {
+    font-size: 11px;
+    margin-top: 6px;
+    min-height: 14px;
+    color: var(--muted);
+}
 
 select {
     appearance: none;
@@ -797,4 +805,13 @@ footer a:hover { color: var(--accent); }
     .swatch-chip { width: 46px; height: 34px; }
     .ref { font-size: 12px; }
     .ref th, .ref td { padding: 8px 8px; }
+}
+
+/* Respect the user's motion preference: no transitions or transforms */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+    }
 }
