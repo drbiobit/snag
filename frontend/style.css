@@ -178,7 +178,7 @@ label {
     margin-bottom: 7px;
 }
 
-input[type="text"], select {
+input[type="text"], input[type="password"], select {
     width: 100%;
     font-family: inherit;
     font-size: 14px;
