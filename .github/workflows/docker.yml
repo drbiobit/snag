@@ -54,20 +54,35 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # Build and push. Tagged three ways:
-      #   latest            - always the newest main build
-      #   <git-sha>         - immutable, exact commit
-      #   <tag>             - only present when a v* tag triggered the run
+      # Compute the tag list first. We always tag `latest` and the exact
+      # commit sha; on a v* tag push we also add the version tag. Building
+      # the list in bash (instead of a YAML ternary) avoids emitting an
+      # invalid empty "image:" tag on non-tag pushes.
+      - name: Compute image tags
+        id: tags
+        run: |
+          {
+            echo "${{ env.GHCR_IMAGE }}:latest"
+            echo "${{ env.GHCR_IMAGE }}:${GITHUB_SHA}"
+            if [ "${{ github.ref_type }}" = "tag" ]; then
+              echo "${{ env.GHCR_IMAGE }}:${GITHUB_REF_NAME}"
+            fi
+          } > tags.txt
+          # Multi-line step output via a heredoc delimiter.
+          {
+            echo "tags<<TAGS_EOF"
+            cat tags.txt
+            echo "TAGS_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      # Build and push with the computed tags.
       - name: Build and push image
         uses: docker/build-push-action@v6
         with:
           context: .
           file: ./Dockerfile
           push: true
-          tags: |
-            ${{ env.GHCR_IMAGE }}:latest
-            ${{ env.GHCR_IMAGE }}:${{ github.sha }}
-            ${{ env.GHCR_IMAGE }}:${{ github.ref_type == 'tag' && github.ref_name || '' }}
+          tags: ${{ steps.tags.outputs.tags }}
           # Reuse layers between runs to keep builds fast.
           cache-from: type=gha
           cache-to: type=gha,mode=max
