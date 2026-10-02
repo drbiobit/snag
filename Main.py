@@ -147,11 +147,17 @@ def check_credentials(username, password):
     return verify_password(password, entry['salt'], entry['hash'])
 
 def login_required(f):
-    """Decorator: require a valid session. 401 for APIs, redirect for pages."""
+    """Decorator: require a valid session. 401 for APIs, redirect for pages.
+
+    When no credentials are configured yet (first run), redirects to the
+    login page so the user sees the "create account" setup form.
+    """
     @wraps(f)
     def wrapper(*args, **kwargs):
         if not auth_enabled():
-            return f(*args, **kwargs)
+            if request.path.startswith('/api/'):
+                return f(*args, **kwargs)
+            return redirect(url_for('login_page'))
         if session.get('authed'):
             return f(*args, **kwargs)
         if request.path.startswith('/api/'):
@@ -552,11 +558,19 @@ def run_job(job_id, url, d, audio_only, audio_format, audio_quality,
 # Routes
 # ---------------------------------------------------------------------------
 
+@app.route('/api/auth-status')
+def auth_status():
+    """Tell the login page whether to show setup or sign-in."""
+    return jsonify(
+        auth_enabled=auth_enabled(),
+        needs_setup=not auth_enabled(),
+        authed=bool(session.get('authed')),
+    )
+
+
 @app.route('/login')
 def login_page():
     """Serve the login / first-setup page."""
-    if not auth_enabled():
-        return redirect(url_for('index'))
     if session.get('authed'):
         return redirect(url_for('index'))
     return send_from_directory(app.static_folder, 'login.html')

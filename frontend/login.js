@@ -8,16 +8,15 @@
 const $ = id => document.getElementById(id);
 
 async function init() {
-    let needsSetup = false;
     try {
-        const r = await fetch('/api/setup', { method: 'POST' });
-        if (r.status === 400) needsSetup = true;
+        const r = await fetch('/api/auth-status');
+        const d = await r.json();
+        if (d.authed) { window.location.href = '/'; return; }
+        if (d.needs_setup) {
+            $('setup-panel').style.display = '';
+            $('login-panel').style.display = 'none';
+        }
     } catch { /* server unreachable */ }
-
-    if (needsSetup) {
-        $('setup-panel').style.display = '';
-        $('login-panel').style.display = 'none';
-    }
 }
 
 $('setup-form').addEventListener('submit', async e => {
