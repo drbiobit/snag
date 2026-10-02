@@ -188,8 +188,8 @@ gutters — no sidebar.
 
 Themes are plain CSS variables. `theme.js` reads `snag-theme` from
 `localStorage` and sets `document.documentElement.dataset.theme` **before
-paint** (to avoid a flash). Four themes: `black` (default), `midnight`,
-`charcoal`, `light`.
+paint** (to avoid a flash). Three themes: `black` (default), `charcoal`,
+`light`. The font is always Ubuntu Mono (no picker).
 
 ### 4.4 Settings persistence
 

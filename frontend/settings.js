@@ -31,29 +31,6 @@
 
     refresh();
 
-    // --- Font ----------------------------------------------------------
-    // Same pattern as the theme: clicking a font swatch persists the choice
-    // (font.js) and applies it to the whole page immediately, so the user
-    // sees the result at once. The default (Ubuntu Mono) is used when nothing
-    // is saved.
-    var fontSwatches = document.querySelectorAll('#font-swatches .swatch');
-
-    function refreshFonts() {
-        var current = window.snagGetFont();
-        fontSwatches.forEach(function (s) {
-            s.classList.toggle('active', s.dataset.font === current);
-        });
-    }
-
-    fontSwatches.forEach(function (s) {
-        s.addEventListener('click', function () {
-            window.snagSetFont(s.dataset.font);
-            refreshFonts();
-        });
-    });
-
-    refreshFonts();
-
     // --- Default download options ---------------------------------------
     // The form fields on this page and the keys they map to in storage.
     var FIELDS = [
