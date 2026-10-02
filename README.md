@@ -17,6 +17,14 @@ Paste a link, pick your options, and watch it download with live progress.
 - ✏️ **Output templating** — custom `%(title)s`-style naming for single downloads
 - ⚡ Real-time progress, up to 2 concurrent downloads, cancel anytime
 
+## Documentation
+
+Full docs are published on GitHub Pages → **[drbiobit.github.io/snag](https://drbiobit.github.io/snag/)**
+
+- [Deployment Guide](https://drbiobit.github.io/snag/DEPLOYMENT.md) — Docker, systemd, PM2, Mac/Windows
+- [Code Reference](https://drbiobit.github.io/snag/CODE.md) — function-by-function walkthrough of `snag.py` + frontend
+- [yt-dlp Flags Reference](https://drbiobit.github.io/snag/yt-dlp_flags_refrence.md) — every flag Snag exposes
+
 ## Requirements
 
 - Python 3.10+
