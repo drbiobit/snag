@@ -28,8 +28,9 @@
 ```bash
 docker run -d --name snag \
   -p 8000:8000 \
-  -v snag-data:/data \
+  -v ./downloads:/data \
   ghcr.io/drbiobit/snag:latest
+
 ```
 
 Open http://localhost:8000. On first visit you'll be asked to **create an
