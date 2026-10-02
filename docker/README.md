@@ -28,7 +28,7 @@ docker compose ... up -d        # step 2: deploy it
 
 ## 1. Build the image
 
-From the **project root** (the folder containing `Main.py`):
+From the **project root** (the folder containing `snag.py`):
 
 ```bash
 docker build -t snag .

@@ -2,10 +2,10 @@
 Gunicorn configuration for Snag.
 
 Run in production with:
-    gunicorn -c gunicorn.conf.py Main:app
+    gunicorn -c gunicorn.conf.py snag:app
 
 Or override any value from the command line, e.g.:
-    gunicorn -c gunicorn.conf.py -b 0.0.0.0:9000 -w 6 Main:app
+    gunicorn -c gunicorn.conf.py -b 0.0.0.0:9000 -w 6 snag:app
 """
 
 # --- Binding -------------------------------------------------------------
@@ -14,7 +14,7 @@ bind = "0.0.0.0:8000"
 
 # --- Workers -------------------------------------------------------------
 # IMPORTANT: this app MUST run with a single worker process.
-# Job state (the `jobs` dict in Main.py) lives in process memory. With
+# Job state (the `jobs` dict in snag.py) lives in process memory. With
 # multiple workers, a status/cancel poll can land on a different worker
 # than the one that registered the job and get a 404.
 # Concurrency comes from threads, not workers.

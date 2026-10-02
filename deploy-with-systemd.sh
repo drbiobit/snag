@@ -164,9 +164,9 @@ Environment=PATH=$VENV_DIR/bin:/usr/local/bin:/usr/bin:/bin
 Environment=DOWNLOAD_DIR=$DOWNLOAD_DIR
 Environment=GUNICORN_WORKERS=$WORKERS
 # Start Gunicorn using the project's config file, bound to the chosen port.
-# The app module MUST be a dotted name ("Main:app"), not an absolute path -
+# The app module MUST be a dotted name ("snag:app"), not an absolute path -
 # gunicorn resolves it relative to WorkingDirectory (set above).
-ExecStart=$GUNICORN -c $APP_DIR/gunicorn.conf.py --bind 0.0.0.0:$PORT --workers $WORKERS Main:app
+ExecStart=$GUNICORN -c $APP_DIR/gunicorn.conf.py --bind 0.0.0.0:$PORT --workers $WORKERS snag:app
 # Restart policy: always restart on failure, with a short backoff.
 Restart=on-failure
 RestartSec=3

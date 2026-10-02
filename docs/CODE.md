@@ -1,19 +1,19 @@
 # Snag — Code Reference
 
-Function-by-function reference for `Main.py` and the frontend files.
+Function-by-function reference for `snag.py` and the frontend files.
 Each entry explains what the function does, then lists the HTML/JS files
 that call into it (directly or via the HTTP endpoints it serves).
 
 ---
 
-## Main.py
+## snag.py
 
 ### Setup constants
 
 | Name | What it is |
 |---|---|
 | `STARTED_AT` | `time.time()` at import. Used by `/health` to report uptime. |
-| `BASE` | Absolute path of the folder containing `Main.py`. |
+| `BASE` | Absolute path of the folder containing `snag.py`. |
 | `DOWNLOADS_DIR` | Where finished files are saved. Env `DOWNLOAD_DIR` or `./downloads`. |
 | `app` | The Flask instance. Static files served from `frontend/` at `/static`. |
 | `MAX_CONCURRENT` | Max simultaneous downloads (2). |
@@ -354,7 +354,7 @@ if __name__ == '__main__':
     app.run(host='0.0.0.0', port=port, debug=False)
 ```
 
-Local development only. In production, Gunicorn imports `Main:app` and this
+Local development only. In production, Gunicorn imports `snag:app` and this
 block is skipped.
 
 ---

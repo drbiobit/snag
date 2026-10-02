@@ -27,7 +27,7 @@ Paste a link, pick your options, and watch it download with live progress.
 
 ```bash
 pip install -r requirements.txt
-python Main.py
+python snag.py
 ```
 
 Open http://localhost:6909 (override with the `PORT` env var).
@@ -40,7 +40,7 @@ The app supports two ways to set a password. Pick whichever fits your setup.
 
 Best for local use or when you don't want to touch any files.
 
-1. Start the app (`python Main.py` or `docker compose up -d`).
+1. Start the app (`python snag.py` or `docker compose up -d`).
 2. Open http://localhost:6909 (or http://localhost:8000 for Docker).
 3. You'll be redirected to a **"create account"** page.
 4. Enter a username and password, confirm the password, click **create**.
@@ -56,7 +56,7 @@ once at deploy time.
 
 **Local:**
 ```bash
-SNAG_USER=admin SNAG_PASSWORD=your-strong-password python Main.py
+SNAG_USER=admin SNAG_PASSWORD=your-strong-password python snag.py
 ```
 
 **Docker Compose** — edit `docker/docker-compose.yml`:
@@ -95,7 +95,7 @@ in-browser account — the setup page is skipped entirely.
 ## Project Layout
 
 ```
-Main.py                     # Flask app + yt-dlp job runner
+snag.py                     # Flask app + yt-dlp job runner
 frontend/index.html         # UI
 frontend/login.html         # Login / first-setup page
 frontend/app.js             # Frontend logic

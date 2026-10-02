@@ -2,7 +2,7 @@
 # Snag - Docker build context (project root)
 #
 # Keeps local artifacts out of the image. The Dockerfile only needs
-# Main.py, gunicorn.conf.py, requirements.txt and frontend/.
+# snag.py, gunicorn.conf.py, requirements.txt and frontend/.
 # ===========================================================================
 
 # Runtime artifacts

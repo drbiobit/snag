@@ -155,8 +155,8 @@ echo -e "${G}Snag -> http://localhost:${PORT}${N}"
 echo "Press Ctrl+C to stop."
 echo ""
 
-# Run the Flask dev server (Main.py's __main__ block) with our port + dir.
+# Run the Flask dev server (snag.py's __main__ block) with our port + dir.
 # This is fine for local use; for a server use the Docker/PM2/systemd scripts.
 export PORT="$PORT"
 export DOWNLOAD_DIR="$DOWNLOAD_DIR"
-exec python3 Main.py
+exec python3 snag.py

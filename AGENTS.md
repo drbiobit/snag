@@ -44,11 +44,11 @@ Rules for AI agents (and humans) working in this repository.
 ## 2. General working rules
 
 - Keep changes minimal and focused; do not refactor unrelated code.
-- The backend is a single file (`Main.py`) on purpose — keep it that way.
+- The backend is a single file (`snag.py`) on purpose — keep it that way.
 - Frontend is vanilla HTML/CSS/JS with no build step — do not introduce
   frameworks or bundlers.
 - Run the app locally to verify changes when practical:
-  `python Main.py` → http://localhost:6909 (requires `yt-dlp` and `ffmpeg`
-  on PATH).
-- After changes that touch `Main.py` or the frontend, verify the affected
+   `python snag.py` → http://localhost:6909 (requires `yt-dlp` and `ffmpeg`
+   on PATH).
+- After changes that touch `snag.py` or the frontend, verify the affected
   endpoints/pages still work before committing.

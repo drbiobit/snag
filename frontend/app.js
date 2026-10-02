@@ -1,7 +1,7 @@
 /*
  * Snag - frontend logic
  *
- * Talks to the Flask backend (Main.py):
+ * Talks to the Flask backend (snag.py):
  *   - validates the URL as the user types
  *   - starts a download and polls for progress once per second
  *   - shows the result (or an error) when the job finishes

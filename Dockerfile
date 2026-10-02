@@ -44,7 +44,7 @@ RUN python3 -m venv /opt/venv \
 ENV PATH="/opt/venv/bin:$PATH"
 
 # --- Application code ------------------------------------------------------
-COPY Main.py gunicorn.conf.py ./
+COPY snag.py gunicorn.conf.py ./
 COPY frontend ./frontend
 
 # --- Runtime configuration -------------------------------------------------
@@ -70,4 +70,4 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD curl -fsS http://localhost:8000/health || exit 1
 
 # Run under Gunicorn using our config file (resolved from the venv on PATH).
-CMD ["gunicorn", "-c", "gunicorn.conf.py", "Main:app"]
+CMD ["gunicorn", "-c", "gunicorn.conf.py", "snag:app"]

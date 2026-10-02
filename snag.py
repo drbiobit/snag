@@ -13,7 +13,7 @@ How it works:
 
 Run it:
     pip install -r requirements.txt
-    python Main.py          # then open http://localhost:6909
+    python snag.py          # then open http://localhost:6909
 
 Requires: yt-dlp and ffmpeg on your PATH.
 """
@@ -898,7 +898,7 @@ def health():
 
 if __name__ == '__main__':
     # Local development only. In production, run with Gunicorn instead:
-    #   gunicorn -c gunicorn.conf.py Main:app
+    #   gunicorn -c gunicorn.conf.py snag:app
     # (This block is skipped when Gunicorn imports the module.)
     port = int(os.environ.get('PORT', 6909))
     print(f"Snag -> http://localhost:{port}")

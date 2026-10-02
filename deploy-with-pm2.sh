@@ -103,7 +103,7 @@ pm2 delete "$APP_NAME" >/dev/null 2>&1 || true
 # binary as a Node.js script, which crashes with a SyntaxError.
 #
 # NOTE 2: --cwd sets the working directory so gunicorn can resolve the dotted
-# app module "Main:app". The module must be a dotted path, NOT an absolute
+# app module "snag:app". The module must be a dotted path, NOT an absolute
 # filesystem path (gunicorn would fail with ModuleNotFoundError otherwise).
 pm2 start "$GUNICORN" \
     --name "$APP_NAME" \
@@ -112,7 +112,7 @@ pm2 start "$GUNICORN" \
     -- -c "${APP_DIR}/gunicorn.conf.py" \
          --bind "0.0.0.0:${PORT}" \
          --workers "$WORKERS" \
-         "Main:app"
+          "snag:app"
 
 ok "started"
 
