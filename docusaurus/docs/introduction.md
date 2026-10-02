@@ -40,6 +40,6 @@ it works under the hood.
 
 ```bash
 docker pull ghcr.io/drbiobit/snag:latest
-docker run -d --name snag -p 8000:8000 -v snag-data:/data ghcr.io/drbiobit/snag:latest
+docker run -d --name snag -p 8000:8000 -v ./downloads:/data ghcr.io/drbiobit/snag:latest
 # open http://localhost:8000
 ```
