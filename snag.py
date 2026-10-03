@@ -20,6 +20,7 @@ Requires: yt-dlp and ffmpeg on your PATH.
 
 import os
 import re
+import sys
 import json
 import uuid
 import hmac
@@ -80,8 +81,23 @@ previews_lock = threading.Lock()
 # ---------------------------------------------------------------------------
 
 # Where the user store lives (on the /data volume in Docker).
+# If the configured directory isn't writable (e.g. a stale root-owned named
+# volume), fall back to a writable location so the app can still boot. The
+# docker-entrypoint.sh normally fixes ownership before we get here; this is a
+# safety net for edge cases (e.g. a volume created by an older image).
 DATA_DIR = os.environ.get('DATA_DIR') or os.path.join(BASE, 'data')
-os.makedirs(DATA_DIR, exist_ok=True)
+try:
+    os.makedirs(DATA_DIR, exist_ok=True)
+    # Probe writability with a temp file.
+    _probe = os.path.join(DATA_DIR, '.write_test')
+    with open(_probe, 'w') as _f:
+        _f.write('ok')
+    os.remove(_probe)
+except (PermissionError, OSError):
+    _fallback = os.path.join(BASE, 'data')
+    print(f"WARNING: {DATA_DIR} is not writable, falling back to {_fallback}", file=sys.stderr)
+    DATA_DIR = _fallback
+    os.makedirs(DATA_DIR, exist_ok=True)
 USERS_FILE = os.path.join(DATA_DIR, 'users.json')
 SECRET_FILE = os.path.join(DATA_DIR, 'secret')
 

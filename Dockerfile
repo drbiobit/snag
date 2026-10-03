@@ -16,6 +16,7 @@ FROM ubuntu:24.04
 #   python3 + python3-venv : the interpreter and the venv module
 #   ffmpeg                 : required by yt-dlp to merge/convert media
 #   curl + ca-certificates : healthcheck + TLS certs for outbound HTTPS
+#   gosu                   : privilege-drop helper for the entrypoint script
 # DEBIAN_FRONTEND keeps apt non-interactive inside the build.
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -25,6 +26,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         ffmpeg \
         curl \
         ca-certificates \
+        gosu \
     && rm -rf /var/lib/apt/lists/*
 
 # --- Python virtualenv + dependencies --------------------------------------
@@ -44,8 +46,9 @@ RUN python3 -m venv /opt/venv \
 ENV PATH="/opt/venv/bin:$PATH"
 
 # --- Application code ------------------------------------------------------
-COPY snag.py gunicorn.conf.py ./
+COPY snag.py gunicorn.conf.py docker-entrypoint.sh ./
 COPY frontend ./frontend
+RUN chmod +x docker-entrypoint.sh
 
 # --- Runtime configuration -------------------------------------------------
 # Where downloads are stored. Overridable at run time, e.g.
@@ -61,10 +64,13 @@ ENV DOWNLOAD_DIR=/data \
     PORT=8000
 
 # Create the default download directory and a non-root user to run as.
+# The container starts as root so docker-entrypoint.sh can chown the mounted
+# volumes (named volumes are initialized as root:root by Docker on first use,
+# which would otherwise make them unwritable by the snag user). The entrypoint
+# then drops privileges to snag via gosu before exec'ing the app.
 RUN mkdir -p /data \
     && groupadd -r snag && useradd -r -g snag -d /app -s /sbin/nologin snag \
     && chown -R snag:snag /data /app
-USER snag
 
 # The port Gunicorn listens on (see gunicorn.conf.py).
 EXPOSE 8000
@@ -73,5 +79,7 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD curl -fsS http://localhost:8000/health || exit 1
 
-# Run under Gunicorn using our config file (resolved from the venv on PATH).
+# Entrypoint fixes volume ownership (root -> snag) then drops privileges.
+# CMD is the default command the entrypoint execs after dropping to snag.
+ENTRYPOINT ["/app/docker-entrypoint.sh"]
 CMD ["gunicorn", "-c", "gunicorn.conf.py", "snag:app"]
