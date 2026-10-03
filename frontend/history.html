@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Snag · downloads</title>
+    <title>Snag · history</title>
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
     <link rel="stylesheet" href="/static/style.css">
     <script src="/static/theme.js"></script>
@@ -20,10 +20,10 @@
                 <a href="/" data-label="app" title="app" aria-label="app">
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5M5 9.5V20h14V9.5M9 20v-6h6v6"/></svg>
                 </a>
-                <a href="/downloads" class="active" data-label="downloads" title="downloads" aria-label="downloads" aria-current="page">
+                <a href="/downloads" data-label="downloads" title="downloads" aria-label="downloads">
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 11l5 5 5-5M4 20h16"/></svg>
                 </a>
-                <a href="/history" data-label="history" title="history" aria-label="history">
+                <a href="/history" class="active" data-label="history" title="history" aria-label="history" aria-current="page">
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8v4l3 3M3.05 11a9 9 0 1 1 .5 4M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.75L3 8"/></svg>
                 </a>
                 <a href="/docs" data-label="docs" title="docs" aria-label="docs">
@@ -42,15 +42,18 @@
         <div class="content">
 
         <main>
+            <!-- Download history -->
             <section class="card">
                 <div class="card-head">
-                    <h2>Downloads</h2>
-                    <span class="muted" id="dl-count">0 files</span>
+                    <h2>History</h2>
+                    <span class="muted" id="hist-count">0 entries</span>
                 </div>
-
-                <div id="dl-list">
-                    <!-- rows injected by downloads.js -->
-                    <p class="muted" id="dl-empty">No downloads yet. Grab something from the app.</p>
+                <div class="actions" style="margin-bottom:16px;">
+                    <button id="clear-history-btn" class="btn btn-ghost">clear history</button>
+                    <button id="clear-auth-btn" class="btn btn-ghost" style="color:var(--error);">reset credentials</button>
+                </div>
+                <div id="hist-list">
+                    <p class="muted" id="hist-empty">No downloads yet. Grab something from the app.</p>
                 </div>
             </section>
         </main>
@@ -62,6 +65,6 @@
         </div><!-- /.content -->
         </div><!-- /.body-row -->
     </div><!-- /.layout -->
-    <script src="/static/downloads.js"></script>
+    <script src="/static/history.js"></script>
 </body>
 </html>

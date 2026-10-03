@@ -21,7 +21,7 @@ docker compose ... up -d        # step 2: deploy it
 |------------------------|-------------|------------------------------------------------------|
 | `Dockerfile`           | project root| Builds the `snag` image (Alpine + venv + yt-dlp + ffmpeg). |
 | `.dockerignore`        | project root| Keeps local artifacts out of the build.              |
-| `docker-compose.yml`   | `docker/`   | Deploys the `snag` image with a download volume.     |
+| `docker-compose.yml`   | `docker/`   | Deploys the `snag` image with data + config volumes. |
 | `README.md`            | `docker/`   | This guide.                                          |
 
 ---
@@ -45,7 +45,7 @@ docker compose -f docker/docker-compose.yml up -d
 # Follow the logs
 docker compose -f docker/docker-compose.yml logs -f
 
-# Stop (the download data volume is kept)
+# Stop (the data and config volumes are kept)
 docker compose -f docker/docker-compose.yml down
 ```
 
@@ -71,7 +71,8 @@ variable (default inside the image: `/data`).
 - **Plain Docker** (no compose) — mount any host directory to `/data`:
   ```bash
   docker run -d --name snag -p 8000:8000 \
-    -v /mnt/big-disk/snag:/data snag
+    -v /mnt/big-disk/snag:/data \
+    -v snag-config:/config snag
   ```
 
 The app creates the directory if it doesn't exist.
@@ -90,8 +91,10 @@ Two ways to set a password. Pick one.
 4. Enter a username and password, confirm, click **create**.
 5. You're in. Every subsequent visit requires sign-in.
 
-Credentials are stored in `data/users.json` inside the `snag-data` volume,
-so they persist across `docker compose down` / `up` and image rebuilds.
+Credentials are stored in a **SQLite database** (`/config/snag.db`) on the
+`snag-config` volume, so they persist across `docker compose down` / `up`
+and image rebuilds. The database is completely separate from the downloads
+folder — it never appears in the web UI file list.
 
 ### Option B — environment variables (fixed creds at deploy time)
 
@@ -100,6 +103,7 @@ Edit `docker/docker-compose.yml` and uncomment the auth lines:
 ```yaml
 environment:
   DOWNLOAD_DIR: /data
+  SNAG_CONFIG_DIR: /config
   GUNICORN_WORKERS: "1"
   SNAG_USER: admin
   SNAG_PASSWORD: your-strong-password
@@ -112,7 +116,7 @@ Or with plain Docker:
 ```bash
 docker run -d --name snag -p 8000:8000 \
   -e SNAG_USER=admin -e SNAG_PASSWORD=your-strong-password \
-  -v snag-data:/data snag
+  -v snag-data:/data -v snag-config:/config snag
 ```
 
 When both `SNAG_USER` and `SNAG_PASSWORD` are set, they **override** any
@@ -121,11 +125,11 @@ in-browser account — the setup page is skipped and login uses those creds.
 ### Resetting credentials
 
 ```bash
-# Wipe the stored account (Option A)
-docker volume rm docker_snag-data
+# Wipe the auth database (Option A)
+docker volume rm docker_snag-config
 
-# Or just delete the users file from a running container
-docker exec snag rm /data/users.json
+# Or just delete the DB file from a running container
+docker exec snag rm /config/snag.db
 ```
 
 Then reopen the browser — the "create account" page appears again.
@@ -134,7 +138,9 @@ Then reopen the browser — the "create account" page appears again.
 
 - Passwords hashed with PBKDF2-SHA256 (200k iterations, per-user salt).
 - Session cookies: `HttpOnly`, `SameSite=Lax`, 7-day lifetime.
-- Signing key auto-generated on first start, persisted to `/data/secret`.
+- Signing key auto-generated on first start, persisted in the SQLite DB.
+- Auth data lives in `/config/snag.db` — a separate volume from downloads,
+  so it's never visible in the web UI file list.
 - `/health` is always open (no auth) for container healthchecks.
 
 ---
@@ -144,10 +150,11 @@ Then reopen the browser — the "create account" page appears again.
 | Variable           | Default      | Meaning                                   |
 |--------------------|--------------|-------------------------------------------|
 | `DOWNLOAD_DIR`     | `/data`      | Where finished files are saved.           |
+| `SNAG_CONFIG_DIR`  | `/config`    | Where the SQLite auth database (`snag.db`) lives. |
 | `GUNICORN_WORKERS` | `1`          | Number of Gunicorn worker processes. **Must stay 1** — job state is in process memory, so multiple workers break `/api/status` and `/api/cancel` polling. |
 | `SNAG_USER`        | *(unset)*    | Username for login. Set both `SNAG_USER` and `SNAG_PASSWORD` to enable env-based auth. |
 | `SNAG_PASSWORD`    | *(unset)*    | Password for login. See §4 Authentication. |
-| `SNAG_SECRET`      | *(auto)*     | Session signing key. Auto-generated and stored in `/data/secret` if unset. |
+| `SNAG_SECRET`      | *(auto)*     | Session signing key. Auto-generated and stored in the SQLite DB if unset. |
 
 ---
 
@@ -178,4 +185,6 @@ curl http://localhost:8000/health
 - The container runs as a non-root user (`snag`).
 - The image is Alpine based; Python packages live in a virtualenv at
   `/opt/venv` (on `PATH`), so the system Python stays clean.
+- Auth data (users + session secret) is stored in a single SQLite database
+  at `/config/snag.db`, completely separate from the downloads folder.
 - If a download fails, the in-app UI shows the real `yt-dlp` error message.

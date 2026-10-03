@@ -27,10 +27,10 @@ each layer does, in order:
    paths.
 3. **The application code** — `snag.py`, `gunicorn.conf.py`, and the whole
    `frontend/` folder are copied into `/app`.
-4. **Runtime defaults** — `DOWNLOAD_DIR=/data`, `GUNICORN_WORKERS=1`,
-   `PORT=8000`.
+4. **Runtime defaults** — `DOWNLOAD_DIR=/data`, `SNAG_CONFIG_DIR=/config`,
+   `GUNICORN_WORKERS=1`, `PORT=8000`.
 5. **A non-root user** — a `snag` user is created and the process runs as it
-   (never root). `/data` and `/app` are owned by this user.
+   (never root). `/data`, `/config`, and `/app` are owned by this user.
 6. **A healthcheck** — `curl http://localhost:8000/health` every 30s.
 7. **The command** — `gunicorn -c gunicorn.conf.py snag:app`.
 
@@ -46,12 +46,12 @@ variable, and in Docker you set them with `-e` (plain Docker) or the
 | Variable | Default in image | What it does |
 |----------|------------------|--------------|
 | `DOWNLOAD_DIR` | `/data` | Where finished files are saved. Point this at a mounted volume. |
+| `SNAG_CONFIG_DIR` | `/config` | Where the SQLite database (`snag.db`) lives. Point this at a mounted volume. |
 | `GUNICORN_WORKERS` | `1` | Gunicorn worker count. **Must stay 1** — job state is in process memory, so more workers break status/cancel polling. |
 | `PORT` | `8000` | The port Gunicorn listens on *inside* the container. |
 | `SNAG_USER` | *(unset)* | Username for login. Set both this and `SNAG_PASSWORD` to enable env-based auth. |
 | `SNAG_PASSWORD` | *(unset)* | Password for login. See below. |
-| `SNAG_SECRET` | *(auto-generated)* | The session signing key. If unset, it's generated on first start and written to `/data/secret`. |
-| `DATA_DIR` | `/data` | Where auth data (`users.json`, `secret`) lives. |
+| `SNAG_SECRET` | *(auto-generated)* | The session signing key. If unset, it's generated on first start and stored in the SQLite database. |
 
 ### The single-worker rule
 
@@ -70,9 +70,9 @@ There are two ways to set up login, and they map nicely to Docker:
 
 Start the container with no auth variables. The first time you open it in a
 browser you'll be redirected to a **"create account"** page. Enter a username
-and password, and you're in. The credentials are stored in
-`/data/users.json`, so they persist across restarts and image updates as long
-as the data volume is kept.
+and password, and you're in. The credentials are stored in the SQLite
+database at `/config/snag.db`, so they persist across restarts and image
+updates as long as the config volume is kept.
 
 This is the zero-config path and what most people want.
 
@@ -86,7 +86,7 @@ uses those credentials.
 ```bash
 docker run -d --name snag -p 8000:8000 \
   -e SNAG_USER=admin -e SNAG_PASSWORD=your-strong-password \
-  -v snag-data:/data snag
+  -v snag-data:/data -v snag-config:/config snag
 ```
 
 Under the hood, passwords are hashed with PBKDF2-SHA256 (200k iterations,
@@ -96,12 +96,16 @@ container healthcheck works.
 
 ### Resetting credentials
 
-```bash
-# Wipe the stored account (Option A)
-docker volume rm <compose>_snag-data     # or docker_snag-data
+From the web UI: go to **History** → click **reset credentials**.
 
-# Or delete just the users file from a running container
-docker exec snag rm /data/users.json
+Or from the command line:
+
+```bash
+# Wipe the auth database (Option A)
+docker volume rm <compose>_snag-config     # or docker_snag-config
+
+# Or delete just the DB file from a running container
+docker exec snag rm /config/snag.db
 ```
 
 Then reopen the browser — the "create account" page appears again.
@@ -112,12 +116,15 @@ Then reopen the browser — the "create account" page appears again.
 
 ```bash
 docker pull ghcr.io/drbiobit/snag:latest
-docker run -d --name snag -p 8000:8000 -v snag-data:/data ghcr.io/drbiobit/snag:latest
+docker run -d --name snag -p 8000:8000 \
+  -v snag-data:/data -v snag-config:/config \
+  ghcr.io/drbiobit/snag:latest
 ```
 
 - `-p 8000:8000` maps the container's port 8000 to the host's 8000. Change
   the left side to remap (e.g. `-p 9000:8000` to use host port 9000).
 - `-v snag-data:/data` creates a named volume for your downloads.
+- `-v snag-config:/config` creates a named volume for the auth database.
 
 Open **http://localhost:8000**.
 
@@ -125,13 +132,14 @@ Open **http://localhost:8000**.
 
 ```bash
 docker build -t snag .          # from the project root
-docker run -d --name snag -p 8000:8000 -v snag-data:/data snag
+docker run -d --name snag -p 8000:8000 \
+  -v snag-data:/data -v snag-config:/config snag
 ```
 
 ### Docker Compose
 
 The `docker/docker-compose.yml` file is the recommended way to run it — it
-declares the port, the volume, the environment, a restart policy, and a
+declares the port, the volumes, the environment, a restart policy, and a
 healthcheck in one place:
 
 ```bash
@@ -151,11 +159,13 @@ services:
       - "8000:8000"
     environment:
       DOWNLOAD_DIR: /data
+      SNAG_CONFIG_DIR: /config
       GUNICORN_WORKERS: "1"
       # SNAG_USER: admin            # uncomment + set to use env auth
       # SNAG_PASSWORD: change-me
     volumes:
       - snag-data:/data
+      - snag-config:/config
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:8000/health"]
@@ -165,6 +175,7 @@ services:
       start_period: 10s
 volumes:
   snag-data:
+  snag-config:
 ```
 
 ### Using a `.env` file
@@ -188,18 +199,20 @@ Two things live on disk and you'll want to keep across restarts and image
 updates:
 
 - **Downloads** — everything in `DOWNLOAD_DIR` (default `/data`).
-- **Auth data** — `users.json` and `secret` in `DATA_DIR` (default `/data`).
+- **Auth database** — `snag.db` in `SNAG_CONFIG_DIR` (default `/config`).
+  Contains credentials, session secret, and download history.
 
-Both default to `/data`, so a single volume covers both. The options:
+Each has its own volume so they can be managed independently. The options:
 
-- **Named volume** (`-v snag-data:/data`) — Docker manages it; survives
-  `down`/`up` and image rebuilds. The default in the compose file.
+- **Named volume** (`-v snag-data:/data -v snag-config:/config`) — Docker
+  manages them; survive `down`/`up` and image rebuilds. The default in the
+  compose file.
 - **Host bind mount** (`-v /host/path:/data`) — the files live in a folder you
   can see and grab directly on the host. Handy for backing up or for pulling
   files off without `docker cp`.
 
-If you don't mount a volume, downloads are written to the container's
-writable layer and are **lost when the container is removed**.
+If you don't mount a volume, data is written to the container's
+writable layer and is **lost when the container is removed**.
 
 ## Health check and monitoring
 
@@ -223,12 +236,12 @@ a monitoring dashboard or alert.
 # Pull the new image
 docker pull ghcr.io/drbiobit/snag:latest
 
-# Recreate the container (data volume is untouched)
+# Recreate the container (data volumes are untouched)
 docker compose -f docker/docker-compose.yml down
 docker compose -f docker/docker-compose.yml up -d
 ```
 
-Your downloads and credentials survive because they live in the volume, not in
+Your downloads and credentials survive because they live in the volumes, not in
 the image.
 
 ## Putting it behind a reverse proxy
@@ -252,6 +265,8 @@ Compose file as a second service if you want everything in one stack.
   boot.
 - **Downloads disappear after a restart** — you didn't mount a volume. Add
   `-v snag-data:/data` (or the compose volume) and restart.
+- **Credentials disappear after a restart** — you didn't mount the config
+  volume. Add `-v snag-config:/config` (or the compose volume) and restart.
 - **Progress bar freezes / status 404** — `GUNICORN_WORKERS` is greater than
   1. Set it to `1`.
 - **"yt-dlp not found" inside the container** — this shouldn't happen with the

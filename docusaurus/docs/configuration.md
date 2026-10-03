@@ -18,20 +18,20 @@ is git-ignored.
 |----------|---------|----------|--------------|
 | `PORT` | `6909` (dev) / `8000` (Docker) | no | The port the app listens on. |
 | `DOWNLOAD_DIR` | `./downloads` (host) / `/data` (Docker) | no | Where finished files are saved. Created on startup if missing. |
-| `DATA_DIR` | `./data` (host) / `/data` (Docker) | no | Where auth data (`users.json`, `secret`) is stored. |
+| `SNAG_CONFIG_DIR` | `./data` (host) / `/config` (Docker) | no | Where the SQLite database (`snag.db`) lives. Stores credentials, session secret, and download history. |
 | `GUNICORN_WORKERS` | `1` | no | Gunicorn worker count. **Must stay 1** — job state is in process memory, so more workers break `/api/status` and `/api/cancel` polling. |
 | `SNAG_USER` | *(unset)* | no | Username for login. Set **both** this and `SNAG_PASSWORD` to enable env-based auth. |
 | `SNAG_PASSWORD` | *(unset)* | no | Password for login. See [Authentication](#authentication). |
-| `SNAG_SECRET` | *(auto-generated)* | no | The session signing key. If unset, it's generated on first start and written to `DATA_DIR/secret` (mode `0600`). |
+| `SNAG_SECRET` | *(auto-generated)* | no | The session signing key. If unset, it's generated on first start and stored in the SQLite database. |
 
 ### Notes
 
-- **`DOWNLOAD_DIR` vs `DATA_DIR`** — in Docker both default to `/data`, so a
-  single volume covers downloads *and* auth data. On a bare host they're
-  separate folders (`downloads/` and `data/`) next to the app.
-- **`SNAG_SECRET`** — if you wipe your data volume without setting this, the
+- **`DOWNLOAD_DIR` vs `SNAG_CONFIG_DIR`** — in Docker these are separate
+  volumes (`/data` and `/config`), so downloads and auth data never mix. On a
+  bare host they're separate folders (`downloads/` and `data/`) next to the app.
+- **`SNAG_SECRET`** — if you wipe your config volume without setting this, the
   key is regenerated and everyone gets logged out. Set it explicitly if you
-  want sessions to survive a data wipe.
+  want sessions to survive a config wipe.
 - **`GUNICORN_WORKERS`** — the one variable that's easy to get wrong. Keep it
   at `1`. Concurrency comes from Gunicorn's threads, not workers.
 
@@ -46,7 +46,7 @@ decides which one is active at runtime.
 - If **both** `SNAG_USER` and `SNAG_PASSWORD` are set → **env-based auth** is
   active. Those credentials are used for login, and the first-visit setup page
   is skipped.
-- Otherwise, if a user already exists in `DATA_DIR/users.json` → **stored
+- Otherwise, if a user already exists in the SQLite database → **stored
   auth** is active (someone already ran the first-visit setup).
 - Otherwise (no env creds, no stored user) → the app runs **open** and the
   first browser visit is redirected to the **"create account"** setup page.
@@ -56,8 +56,8 @@ decides which one is active at runtime.
 On a fresh install with no env credentials, the first person to open the app
 sees a "create account" form. They enter a username and password (minimum 4
 characters), and that becomes the single account. The credentials are hashed
-with **PBKDF2-SHA256 (200,000 iterations, per-user salt)** and stored in
-`users.json`. Every subsequent visit requires sign-in.
+with **PBKDF2-SHA256 (200,000 iterations, per-user salt)** and stored in the
+SQLite database. Every subsequent visit requires sign-in.
 
 ### Env-based auth
 
@@ -72,16 +72,30 @@ first-visit flow. When both are set they **override** any stored account.
   unknown usernames so timing can't reveal which users exist.
 - Session cookies are `HttpOnly` (not readable by JavaScript) and
   `SameSite=Lax` (CSRF protection), with a 7-day lifetime.
-- The signing key is auto-generated and persisted to `DATA_DIR/secret`.
+- The signing key is auto-generated and persisted in the SQLite database.
 
 ### Resetting credentials
 
+From the web UI: go to **History** → click **reset credentials**. This deletes
+the stored account and logs you out.
+
+Or from the command line:
+
 ```bash
-# Delete the stored account (first-visit setup path)
-rm data/users.json          # or: docker exec snag rm /data/users.json
+# Delete the auth database (first-visit setup path)
+rm data/snag.db          # or: docker exec snag rm /config/snag.db
 ```
 
 Then reopen the browser — the "create account" page appears again.
+
+## Download history
+
+Every completed, failed, or cancelled download is recorded in the SQLite
+database. The **History** page in the web UI shows the full log with status,
+file names, sizes, and timestamps.
+
+- **Clear history** — deletes all history rows (files on disk are untouched).
+- **Reset credentials** — deletes the stored account and logs you out.
 
 ## The HTTP API
 
@@ -98,6 +112,7 @@ examples.
 | `POST` | `/api/setup` | First-run account creation. Only works while no users exist. Body: `{username, password}`. |
 | `POST` | `/api/login` | Verify credentials and start a session. Body: `{username, password}`. |
 | `POST` | `/api/logout` | End the current session. |
+| `POST` | `/api/auth/clear` | Delete all stored credentials (resets to first-run state). |
 
 ### Downloads
 
@@ -123,6 +138,13 @@ for how each maps to a `yt-dlp` flag.
 | `GET` | `/api/downloads` | List every file in the downloads folder with size and mtime. |
 | `GET` | `/downloads/<name>` | Serve a finished file as a download. |
 | `POST` | `/api/delete/<name>` | Delete a file (after a path-traversal check). |
+
+### History
+
+| Method | Path | Purpose |
+|--------|------|---------|
+| `GET` | `/api/history` | Return the download history (most recent first). |
+| `POST` | `/api/history/clear` | Delete all download history entries. |
 
 ### Preview & health
 
@@ -154,6 +176,5 @@ curl -s http://localhost:8000/api/status/3f2c…
 | Thing | Location |
 |-------|----------|
 | Finished downloads | `DOWNLOAD_DIR` (default `./downloads` or `/data`) |
-| User store | `DATA_DIR/users.json` |
-| Session signing key | `DATA_DIR/secret` |
+| SQLite database (credentials + history + secret) | `SNAG_CONFIG_DIR/snag.db` (default `./data/snag.db` or `/config/snag.db`) |
 | Running jobs | **process memory only** (lost on restart by design) |

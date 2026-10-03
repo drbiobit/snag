@@ -20,9 +20,14 @@ if [ "$(id -u)" = "0" ]; then
     SNAG_UID=$(id -u snag 2>/dev/null || echo 999)
     SNAG_GID=$(id -g snag 2>/dev/null || echo 999)
 
-    # Fix /data (downloads + auth data volume).
+    # Fix /data (downloads volume).
     if [ -d /data ]; then
         chown -R "${SNAG_UID}:${SNAG_GID}" /data
+    fi
+
+    # Fix /config (SQLite auth database volume).
+    if [ -d /config ]; then
+        chown -R "${SNAG_UID}:${SNAG_GID}" /config
     fi
 
     # Fix /app (in case a bind mount or previous root run left files here).

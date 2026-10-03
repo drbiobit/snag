@@ -463,6 +463,57 @@ label .muted { font-weight: 400; }
 .dl-del:hover { border-color: var(--error); color: var(--error); }
 
 /* --------------------------------------------------------------------------
+   History page
+   -------------------------------------------------------------------------- */
+.hist-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 0;
+    border-bottom: 1px solid var(--border);
+}
+.hist-row:last-child { border-bottom: none; }
+.hist-status {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
+}
+.hist-ok   { color: var(--ok);    background: color-mix(in srgb, var(--ok) 12%, transparent); }
+.hist-warn { color: #e6a817;      background: color-mix(in srgb, #e6a817 12%, transparent); }
+.hist-err  { color: var(--error); background: color-mix(in srgb, var(--error) 12%, transparent); }
+.hist-title {
+    flex: 1;
+    min-width: 0;
+    font-size: 13px;
+    color: var(--text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.hist-url {
+    font-size: 11px;
+    color: var(--faint);
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.hist-size {
+    font-size: 12px;
+    color: var(--muted);
+    white-space: nowrap;
+}
+.hist-time {
+    font-size: 11px;
+    color: var(--faint);
+    white-space: nowrap;
+}
+
+/* --------------------------------------------------------------------------
    Footer
    -------------------------------------------------------------------------- */
 footer {

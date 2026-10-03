@@ -52,26 +52,26 @@ COPY frontend ./frontend
 RUN chmod +x docker-entrypoint.sh
 
 # --- Runtime configuration -------------------------------------------------
-# Where downloads are stored. Overridable at run time, e.g.
-#     docker run -e DOWNLOAD_DIR=/data -v snag-data:/data snag
-# DATA_DIR must point at the same mounted volume so auth data (users.json,
-# secret) survives container rebuilds - otherwise the user store is lost on
-# every restart and the app re-prompts for account setup.
+# DOWNLOAD_DIR: where downloaded media files are stored.
+# SNAG_CONFIG_DIR: where the SQLite auth database (snag.db) lives.
+# Both are overridable at run time, e.g.
+#     docker run -e DOWNLOAD_DIR=/data -e SNAG_CONFIG_DIR=/config \
+#         -v snag-data:/data -v snag-config:/config snag
 # GUNICORN_WORKERS must stay 1: job state lives in process memory (see
 # gunicorn.conf.py), so multiple workers would break status polling.
 ENV DOWNLOAD_DIR=/data \
-    DATA_DIR=/data \
+    SNAG_CONFIG_DIR=/config \
     GUNICORN_WORKERS=1 \
     PORT=8000
 
-# Create the default download directory and a non-root user to run as.
+# Create the default data/config directories and a non-root user to run as.
 # The container starts as root so docker-entrypoint.sh can chown the mounted
 # volumes (named volumes are initialized as root:root by Docker on first use,
 # which would otherwise make them unwritable by the snag user). The entrypoint
-# then drops privileges to snag via gosu before exec'ing the app.
-RUN mkdir -p /data \
+# then drops privileges to snag via setpriv before exec'ing the app.
+RUN mkdir -p /data /config \
     && addgroup -S snag && adduser -S -G snag -h /app -s /bin/sh snag \
-    && chown -R snag:snag /data /app
+    && chown -R snag:snag /data /config /app
 
 # The port Gunicorn listens on (see gunicorn.conf.py).
 EXPOSE 8000

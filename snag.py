@@ -77,50 +77,82 @@ previews_active = 0
 previews_lock = threading.Lock()
 
 # ---------------------------------------------------------------------------
-# Authentication
+# Authentication (SQLite)
 # ---------------------------------------------------------------------------
 
-# Where auth data (users.json, secret) lives. Kept in a separate .config/
-# folder (NOT inside DOWNLOADS_DIR) so it never shows up in the downloads
-# list, can't be downloaded via /downloads/<name>, and can't be accidentally
-# deleted from the file manager.
+# All auth data (users + session secret) lives in a single SQLite database.
+# This keeps it out of the downloads folder entirely — no visibility, no
+# accidental download/delete, no permission dance.
 #
-# In Docker, DATA_DIR defaults to /data (the mounted volume), so auth files
-# land at /data/.config/ and persist across container rebuilds.
-# If the configured directory isn't writable (e.g. a stale root-owned named
-# volume), fall back to a writable location so the app can still boot. The
-# docker-entrypoint.sh normally fixes ownership before we get here; this is a
-# safety net for edge cases (e.g. a volume created by an older image).
-DATA_DIR = os.environ.get('DATA_DIR') or os.path.join(BASE, 'data')
-CONFIG_DIR = os.path.join(DATA_DIR, '.config')
+# Location: $SNAG_CONFIG_DIR/snag.db
+#   Docker:  /config/snag.db  (mounted volume, persists across rebuilds)
+#   Local:   ./data/snag.db   (created automatically)
+CONFIG_DIR = os.environ.get('SNAG_CONFIG_DIR') or os.path.join(BASE, 'data')
+DB_PATH = os.path.join(CONFIG_DIR, 'snag.db')
 try:
     os.makedirs(CONFIG_DIR, exist_ok=True)
-    # Probe writability with a temp file.
     _probe = os.path.join(CONFIG_DIR, '.write_test')
     with open(_probe, 'w') as _f:
         _f.write('ok')
     os.remove(_probe)
 except (PermissionError, OSError):
-    _fallback = os.path.join(BASE, 'data', '.config')
+    _fallback = os.path.join(BASE, 'data')
     print(f"WARNING: {CONFIG_DIR} is not writable, falling back to {_fallback}", file=sys.stderr)
     CONFIG_DIR = _fallback
     os.makedirs(CONFIG_DIR, exist_ok=True)
-USERS_FILE = os.path.join(CONFIG_DIR, 'users.json')
-SECRET_FILE = os.path.join(CONFIG_DIR, 'secret')
+    DB_PATH = os.path.join(CONFIG_DIR, 'snag.db')
 
-# Session signing key: env var wins, otherwise generate once and persist so
-# sessions survive container restarts.
+import sqlite3
+
+def _get_db():
+    """Open a SQLite connection (one per call, closed after use)."""
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+def _init_db():
+    """Create tables if they don't exist."""
+    conn = _get_db()
+    conn.execute('''CREATE TABLE IF NOT EXISTS users (
+        username TEXT PRIMARY KEY,
+        salt     TEXT NOT NULL,
+        hash     TEXT NOT NULL
+    )''')
+    conn.execute('''CREATE TABLE IF NOT EXISTS meta (
+        key   TEXT PRIMARY KEY,
+        value TEXT NOT NULL
+    )''')
+    conn.execute('''CREATE TABLE IF NOT EXISTS history (
+        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+        url        TEXT NOT NULL,
+        title      TEXT,
+        status     TEXT NOT NULL,
+        files      TEXT,
+        size_bytes INTEGER DEFAULT 0,
+        created_at TEXT NOT NULL,
+        finished_at TEXT
+    )''')
+    conn.commit()
+    conn.close()
+
+_init_db()
+
+# Session signing key: env var wins, otherwise generate once and store in DB
+# so sessions survive container restarts.
 def _load_secret():
     env = os.environ.get('SNAG_SECRET')
     if env:
         return env
-    if os.path.exists(SECRET_FILE):
-        with open(SECRET_FILE) as f:
-            return f.read().strip()
+    conn = _get_db()
+    row = conn.execute("SELECT value FROM meta WHERE key='secret'").fetchone()
+    conn.close()
+    if row:
+        return row['value']
     key = secrets.token_urlsafe(32)
-    with open(SECRET_FILE, 'w') as f:
-        f.write(key)
-    os.chmod(SECRET_FILE, 0o600)
+    conn = _get_db()
+    conn.execute("INSERT INTO meta (key, value) VALUES ('secret', ?)", (key,))
+    conn.commit()
+    conn.close()
     return key
 
 app.secret_key = _load_secret()
@@ -143,24 +175,81 @@ def verify_password(password, salt_hex, hash_hex):
     _, computed = hash_password(password, bytes.fromhex(salt_hex))
     return hmac.compare_digest(computed, hash_hex)
 
-def load_users():
-    """Load the user store. Returns {} if the file doesn't exist yet."""
-    if os.path.exists(USERS_FILE):
-        with open(USERS_FILE) as f:
-            return json.load(f)
-    return {}
+def get_user(username):
+    """Fetch a user row from the DB. Returns None if not found."""
+    conn = _get_db()
+    row = conn.execute(
+        "SELECT username, salt, hash FROM users WHERE username = ?",
+        (username,)
+    ).fetchone()
+    conn.close()
+    return dict(row) if row else None
 
-def save_users(users):
-    """Persist the user store (chmod 600 so only the app user can read it)."""
-    with open(USERS_FILE, 'w') as f:
-        json.dump(users, f, indent=2)
-    os.chmod(USERS_FILE, 0o600)
+def user_count():
+    """Number of registered users."""
+    conn = _get_db()
+    n = conn.execute("SELECT COUNT(*) as n FROM users").fetchone()['n']
+    conn.close()
+    return n
+
+def add_user(username, salt_hex, hash_hex):
+    """Insert a new user."""
+    conn = _get_db()
+    conn.execute(
+        "INSERT INTO users (username, salt, hash) VALUES (?, ?, ?)",
+        (username, salt_hex, hash_hex)
+    )
+    conn.commit()
+    conn.close()
+
+def delete_user(username):
+    """Remove a user."""
+    conn = _get_db()
+    conn.execute("DELETE FROM users WHERE username = ?", (username,))
+    conn.commit()
+    conn.close()
+
+def clear_all_users():
+    """Remove all users (resets auth to first-run state)."""
+    conn = _get_db()
+    conn.execute("DELETE FROM users")
+    conn.commit()
+    conn.close()
+
+def log_history(url, title, status, files, size_bytes):
+    """Insert a row into the download history table."""
+    conn = _get_db()
+    conn.execute(
+        "INSERT INTO history (url, title, status, files, size_bytes, created_at, finished_at) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?)",
+        (url, title, status, json.dumps(files), size_bytes,
+         datetime.now().isoformat(), datetime.now().isoformat())
+    )
+    conn.commit()
+    conn.close()
+
+def get_history(limit=100):
+    """Return the most recent download history entries."""
+    conn = _get_db()
+    rows = conn.execute(
+        "SELECT id, url, title, status, files, size_bytes, created_at, finished_at "
+        "FROM history ORDER BY id DESC LIMIT ?", (limit,)
+    ).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+def clear_history():
+    """Delete all download history rows."""
+    conn = _get_db()
+    conn.execute("DELETE FROM history")
+    conn.commit()
+    conn.close()
 
 def auth_enabled():
     """True if credentials are configured (env var or saved user store)."""
     if os.environ.get('SNAG_USER') and os.environ.get('SNAG_PASSWORD'):
         return True
-    return bool(load_users())
+    return user_count() > 0
 
 def check_credentials(username, password):
     """Verify credentials against env vars first, then the user store."""
@@ -168,8 +257,7 @@ def check_credentials(username, password):
     env_pass = os.environ.get('SNAG_PASSWORD')
     if env_user and env_pass:
         return hmac.compare_digest(username, env_user) and hmac.compare_digest(password, env_pass)
-    users = load_users()
-    entry = users.get(username)
+    entry = get_user(username)
     if not entry:
         # Burn the same CPU time as a real check to prevent timing attacks.
         verify_password(password, '00' * 16, '00' * 64)
@@ -585,6 +673,19 @@ def run_job(job_id, url, d, audio_only, audio_format, audio_quality,
         # race the cleanup and see "Job not found"). prune_finished_jobs()
         # drops it once the window has passed.
         job['finished_at'] = time.time()
+        # Record this job in the persistent download history.
+        try:
+            status = job.get('status', 'error')
+            files = job.get('files', [])
+            # Sum up the sizes of the files this job produced.
+            total_size = 0
+            for f in files:
+                p = os.path.join(DOWNLOADS_DIR, f)
+                if os.path.isfile(p):
+                    total_size += os.path.getsize(p)
+            log_history(url, job.get('current_file') or '', status, files, total_size)
+        except Exception:
+            pass  # never let a history write break the job
 
 
 def prune_finished_jobs():
@@ -636,7 +737,7 @@ def api_setup():
     if len(password) < 4:
         return jsonify(success=False, error='password must be at least 4 characters'), 400
     salt, h = hash_password(password)
-    save_users({username: {'salt': salt, 'hash': h}})
+    add_user(username, salt, h)
     session['authed'] = True
     session['user'] = username
     session.permanent = True
@@ -692,6 +793,13 @@ def settings():
 def downloads_page():
     """Serve the downloads page (file manager)."""
     return send_from_directory(app.static_folder, 'downloads.html')
+
+
+@app.route('/history')
+@login_required
+def history_page():
+    """Serve the download history page."""
+    return send_from_directory(app.static_folder, 'history.html')
 
 
 @app.route('/api/validate', methods=['POST'])
@@ -937,6 +1045,30 @@ def delete_file(name):
         os.remove(target)
         return jsonify(success=True)
     return jsonify(success=False, error='File not found'), 404
+
+
+@app.route('/api/history')
+@login_required
+def api_history():
+    """Return the download history (most recent first)."""
+    return jsonify(success=True, history=get_history())
+
+
+@app.route('/api/history/clear', methods=['POST'])
+@login_required
+def api_history_clear():
+    """Delete all download history entries."""
+    clear_history()
+    return jsonify(success=True)
+
+
+@app.route('/api/auth/clear', methods=['POST'])
+@login_required
+def api_auth_clear():
+    """Delete all stored credentials (resets to first-run state)."""
+    clear_all_users()
+    session.clear()
+    return jsonify(success=True)
 
 
 @app.route('/health')

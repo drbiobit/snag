@@ -15,11 +15,11 @@ section first — it's the single most useful mental model for the whole app.
 ## The big picture
 
 Snag is deliberately small. The entire backend is **one Python file**
-(`snag.py`, ~900 lines) that wraps the `yt-dlp` command-line tool behind a
+(`snag.py`, ~1000 lines) that wraps the `yt-dlp` command-line tool behind a
 Flask API. The frontend is **vanilla HTML/CSS/JS** with no build step, no
-framework, and no bundler. There's no database — job state lives in process
-memory, and the only things that touch disk are the downloaded files and a
-tiny `users.json` for authentication.
+framework, and no bundler. Job state lives in process memory; a single
+SQLite database (`snag.db`) stores credentials, download history, and the
+session signing key.
 
 That simplicity is the point. The whole thing is readable in an afternoon,
 and every deployment option (Docker, systemd, PM2, a laptop) works because
@@ -135,16 +135,19 @@ bolting on an auth system. It's intentionally minimal but does the secure
 things right:
 
 - **`_load_secret()`** — the session signing key. It prefers the `SNAG_SECRET`
-  env var; otherwise it generates a random key on first start and writes it to
-  `data/secret` (mode `0600`) so sessions survive a restart. If you wipe the
-  data volume without setting `SNAG_SECRET`, you'll be logged out — that's
+  env var; otherwise it generates a random key on first start and stores it in
+  the SQLite database (`meta` table) so sessions survive a restart. If you wipe
+  the config volume without setting `SNAG_SECRET`, you'll be logged out — that's
   expected.
 - **`hash_password` / `verify_password`** — passwords are hashed with
   **PBKDF2-SHA256 at 200,000 iterations** and a per-user 16-byte salt.
   Verification uses `hmac.compare_digest` (constant-time) so a timing attack
   can't tell how many characters of a password matched.
-- **`load_users` / `save_users`** — the user store is a single
-  `data/users.json` file, written with mode `0600`.
+- **`get_user` / `add_user` / `delete_user` / `clear_all_users`** — the user
+  store is a SQLite table (`users`) in `SNAG_CONFIG_DIR/snag.db`.
+- **`log_history` / `get_history` / `clear_history`** — download history is
+  tracked in a SQLite table (`history`), recording URL, title, status, files,
+  size, and timestamps for every job.
 - **`auth_enabled()`** — true if either the `SNAG_USER`/`SNAG_PASSWORD` env
   vars are set *or* a user already exists in the store. This is what decides
   whether the app runs "open" (first-visit setup) or "locked" (sign-in).
