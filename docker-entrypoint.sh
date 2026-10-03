@@ -7,6 +7,9 @@
 # This script runs as root (the container's default user) and chowns the
 # relevant directories to the snag user, then drops privileges and execs
 # the real command.
+#
+# Privilege drop uses `setpriv` (util-linux, built into Alpine) instead of
+# gosu, which is not packaged for Alpine.
 
 set -e
 
@@ -28,7 +31,8 @@ if [ "$(id -u)" = "0" ]; then
     fi
 
     # Drop to the snag user for the rest of the container's life.
-    exec gosu snag "$@"
+    # `su` is available on Alpine (busybox); gosu is not packaged for Alpine.
+    exec su snag -c "$*"
 fi
 
 # Not root (e.g. local dev or already dropped) - just run the command.

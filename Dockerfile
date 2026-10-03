@@ -12,21 +12,21 @@
 #     docker build -t snag .
 # ===========================================================================
 
-FROM alpine:3.20
+FROM alpine:latest
 
 # --- System packages -------------------------------------------------------
-#   python3 + python3-pip : the interpreter and pip
+#   python3               : the interpreter (pip comes via ensurepip)
 #   ffmpeg                : required by yt-dlp to merge/convert media
 #   curl + ca-certificates: healthcheck + TLS certs for outbound HTTPS
-#   gosu                  : privilege-drop helper for the entrypoint script
 #   libcrypto3            : OpenSSL 3 shared libs (Alpine splits them out)
+#   shadow                : provides `id` for the entrypoint script
+# Note: gosu is not packaged for Alpine; the entrypoint uses `setpriv`
+# (util-linux, built in) for the privilege drop instead.
 RUN apk add --no-cache \
         python3 \
-        python3-pip \
         ffmpeg \
         curl \
         ca-certificates \
-        gosu \
         libcrypto3 \
         shadow
 
@@ -70,7 +70,7 @@ ENV DOWNLOAD_DIR=/data \
 # which would otherwise make them unwritable by the snag user). The entrypoint
 # then drops privileges to snag via gosu before exec'ing the app.
 RUN mkdir -p /data \
-    && addgroup -S snag && adduser -S -G snag -h /app -s /sbin/nologin snag \
+    && addgroup -S snag && adduser -S -G snag -h /app -s /bin/sh snag \
     && chown -R snag:snag /data /app
 
 # The port Gunicorn listens on (see gunicorn.conf.py).
