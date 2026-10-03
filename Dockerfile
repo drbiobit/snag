@@ -6,7 +6,7 @@
 # re-encode audio) are installed at the system level, then the app runs
 # under Gunicorn from inside the venv.
 #
-# Alpine keeps the image small (~80 MB vs ~350 MB for the old Ubuntu base).
+# Alpine keeps the image small (~312 MB vs ~906 MB for the old Ubuntu base).
 #
 # Build from the project root:
 #     docker build -t snag .

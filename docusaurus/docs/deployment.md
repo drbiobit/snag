@@ -56,7 +56,7 @@ Docker is the most portable option: one image, works on any host that runs
 Docker, and the app is fully isolated from the rest of the system. It's also
 the easiest to put behind a reverse proxy for a public HTTPS URL.
 
-The image is **Ubuntu 24.04** based. Inside it, the system **Python 3** is
+The image is **Alpine** based. Inside it, the system **Python 3** is
 installed into a **virtualenv** (so the app's packages don't clash with the
 system Python), and **yt-dlp** and **ffmpeg** are installed at the system
 level. The app runs under Gunicorn and stores downloads in a persistent

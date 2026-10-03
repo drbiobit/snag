@@ -13,14 +13,13 @@ customise the setup.
 
 ## What's inside the image
 
-The `Dockerfile` builds an image from **Ubuntu 24.04** (noble). Here's what
+The `Dockerfile` builds an image from **Alpine** (latest). Here's what
 each layer does, in order:
 
-1. **System packages** — `python3`, `python3-venv`, `python3-pip`, `ffmpeg`,
-   `curl`, and `ca-certificates`. `ffmpeg` is the one that matters: `yt-dlp`
+1. **System packages** — `python3`, `ffmpeg`, `curl`, `ca-certificates`,
+   `libcrypto3`, and `shadow`. `ffmpeg` is the one that matters: `yt-dlp`
    needs it to merge video+audio, convert audio, and embed metadata.
-   `DEBIAN_FRONTEND=noninteractive` keeps `apt` from prompting during the
-   build.
+   `apk add --no-cache` keeps the image small.
 2. **A Python virtualenv** at `/opt/venv` — Flask and gunicorn are installed
    here (from `requirements.txt`), and **yt-dlp** is installed into the venv
    too (it's a CLI the app shells out to). The venv's `bin/` is put on

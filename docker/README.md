@@ -1,6 +1,6 @@
 # Snag — Docker deployment
 
-Run **Snag** in Docker. The image is based on **Ubuntu 24.04** with the
+Run **Snag** in Docker. The image is based on **Alpine** with the
 system **Python 3** installed into a **virtualenv** (all pip packages live
 there), plus **yt-dlp** and **ffmpeg**. The app runs under **Gunicorn** with
 a configurable download location.
@@ -19,7 +19,7 @@ docker compose ... up -d        # step 2: deploy it
 
 | File                   | Where       | Purpose                                              |
 |------------------------|-------------|------------------------------------------------------|
-| `Dockerfile`           | project root| Builds the `snag` image (Ubuntu 24.04 + venv + yt-dlp + ffmpeg). |
+| `Dockerfile`           | project root| Builds the `snag` image (Alpine + venv + yt-dlp + ffmpeg). |
 | `.dockerignore`        | project root| Keeps local artifacts out of the build.              |
 | `docker-compose.yml`   | `docker/`   | Deploys the `snag` image with a download volume.     |
 | `README.md`            | `docker/`   | This guide.                                          |
@@ -176,6 +176,6 @@ curl http://localhost:8000/health
 ## 8. Notes
 
 - The container runs as a non-root user (`snag`).
-- The image is Ubuntu 24.04 based; Python packages live in a virtualenv at
+- The image is Alpine based; Python packages live in a virtualenv at
   `/opt/venv` (on `PATH`), so the system Python stays clean.
 - If a download fails, the in-app UI shows the real `yt-dlp` error message.

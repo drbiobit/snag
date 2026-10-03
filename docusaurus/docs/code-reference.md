@@ -72,7 +72,7 @@ snag/
 ├── snag.py                 # the entire backend (Flask app)
 ├── gunicorn.conf.py        # production server config
 ├── requirements.txt        # Flask + gunicorn (yt-dlp is a CLI, not a dep)
-├── Dockerfile              # Ubuntu 24.04 + venv + yt-dlp + ffmpeg
+├── Dockerfile              # Alpine + venv + yt-dlp + ffmpeg
 ├── .dockerignore           # keeps local artifacts out of the image
 ├── .env.example            # template for environment variables
 ├── deploy-with-systemd.sh  # Linux VPS deployment (recommended)
