@@ -1,33 +1,34 @@
 # ===========================================================================
 # Snag - Docker image
 #
-# Base: Ubuntu 24.04 (noble) with the system Python 3, a virtualenv, and all
-# pip packages installed into it. yt-dlp and ffmpeg (needed to merge
-# video/audio and re-encode audio) are installed at the system level, then
-# the app runs under Gunicorn from inside the venv.
+# Base: Alpine 3.20 with python3, a virtualenv, and all pip packages
+# installed into it. yt-dlp and ffmpeg (needed to merge video/audio and
+# re-encode audio) are installed at the system level, then the app runs
+# under Gunicorn from inside the venv.
+#
+# Alpine keeps the image small (~80 MB vs ~350 MB for the old Ubuntu base).
 #
 # Build from the project root:
 #     docker build -t snag .
 # ===========================================================================
 
-FROM ubuntu:24.04
+FROM alpine:3.20
 
 # --- System packages -------------------------------------------------------
-#   python3 + python3-venv : the interpreter and the venv module
-#   ffmpeg                 : required by yt-dlp to merge/convert media
-#   curl + ca-certificates : healthcheck + TLS certs for outbound HTTPS
-#   gosu                   : privilege-drop helper for the entrypoint script
-# DEBIAN_FRONTEND keeps apt non-interactive inside the build.
-ENV DEBIAN_FRONTEND=noninteractive
-RUN apt-get update && apt-get install -y --no-install-recommends \
+#   python3 + python3-pip : the interpreter and pip
+#   ffmpeg                : required by yt-dlp to merge/convert media
+#   curl + ca-certificates: healthcheck + TLS certs for outbound HTTPS
+#   gosu                  : privilege-drop helper for the entrypoint script
+#   libcrypto3            : OpenSSL 3 shared libs (Alpine splits them out)
+RUN apk add --no-cache \
         python3 \
-        python3-venv \
         python3-pip \
         ffmpeg \
         curl \
         ca-certificates \
         gosu \
-    && rm -rf /var/lib/apt/lists/*
+        libcrypto3 \
+        shadow
 
 # --- Python virtualenv + dependencies --------------------------------------
 # Create a dedicated venv so the app's packages don't clash with the system
@@ -69,7 +70,7 @@ ENV DOWNLOAD_DIR=/data \
 # which would otherwise make them unwritable by the snag user). The entrypoint
 # then drops privileges to snag via gosu before exec'ing the app.
 RUN mkdir -p /data \
-    && groupadd -r snag && useradd -r -g snag -d /app -s /sbin/nologin snag \
+    && addgroup -S snag && adduser -S -G snag -h /app -s /sbin/nologin snag \
     && chown -R snag:snag /data /app
 
 # The port Gunicorn listens on (see gunicorn.conf.py).
