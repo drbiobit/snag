@@ -1,0 +1,50 @@
+name: Feature request
+description: Suggest a new feature or improvement for Snag.
+title: "[feature]: "
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting an improvement! Please describe what you'd like and why.
+
+        **Security issues:** do NOT open a public issue. See [SECURITY.md](https://github.com/drbiobit/snag/blob/main/SECURITY.md) instead.
+  - type: checkboxes
+    id: prereqs
+    attributes:
+      label: Prerequisites
+      options:
+        - label: I have searched existing issues and this is not a duplicate
+          required: true
+        - label: I confirm this is a feature request, not a bug report
+          required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem / motivation
+      description: What problem does this solve, or what limitation do you hit today?
+      placeholder: e.g. "I can't download only specific items from a playlist without also grabbing the rest."
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: What would you like to see? How should it work?
+      placeholder: e.g. "A UI option to pick which playlist items to download."
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Any workarounds you've tried, or other approaches you've thought about.
+    validations:
+      required: false
+  - type: textarea
+    id: extra
+    attributes:
+      label: Additional context
+      description: Links, mockups, or references to similar features in other tools.
+    validations:
+      required: false

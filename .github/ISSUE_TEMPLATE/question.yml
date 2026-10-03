@@ -1,0 +1,50 @@
+name: Question / help
+description: Ask a question or get help using Snag.
+title: "[question]: "
+labels: [question]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Stuck on something? Ask away — but please check the docs first:
+        [Snag documentation](https://drbiobit.github.io/snag/).
+
+        **Security issues:** do NOT open a public issue. See [SECURITY.md](https://github.com/drbiobit/snag/blob/main/SECURITY.md) instead.
+  - type: checkboxes
+    id: prereqs
+    attributes:
+      label: Prerequisites
+      options:
+        - label: I have read the documentation and the README
+          required: true
+        - label: I have searched existing issues and discussions
+          required: true
+  - type: dropdown
+    id: deploy
+    attributes:
+      label: How are you running Snag?
+      options:
+        - Docker (ghcr.io/drbiobit/snag)
+        - Docker Compose
+        - From source (python snag.py)
+        - systemd
+        - PM2
+        - Other
+    validations:
+      required: false
+  - type: textarea
+    id: question
+    attributes:
+      label: Your question
+      description: Describe what you're trying to do and where you're stuck.
+      placeholder: 'e.g. "I mounted a volume at /data but downloads are not appearing there. Here is my compose file: ..."'
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Relevant config / logs
+      description: Paste your compose file, docker run command, or any error output. Wrap in a code block.
+      render: yaml
+    validations:
+      required: false

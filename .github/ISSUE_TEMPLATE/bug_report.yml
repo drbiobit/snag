@@ -1,0 +1,86 @@
+name: Bug report
+description: Report a problem with Snag so it can be fixed.
+title: "[bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a bug report! Please fill out the sections below — the more detail you provide, the faster we can reproduce and fix it.
+
+        **Security issues:** do NOT open a public issue. See [SECURITY.md](https://github.com/drbiobit/snag/blob/main/SECURITY.md) instead.
+  - type: checkboxes
+    id: prereqs
+    attributes:
+      label: Prerequisites
+      options:
+        - label: I use a supported version (the latest release / latest Docker image)
+          required: true
+        - label: I have searched existing issues and this is not a duplicate
+          required: true
+        - label: I confirm this is a bug, not a question or feature request
+          required: true
+  - type: dropdown
+    id: deploy
+    attributes:
+      label: How are you running Snag?
+      options:
+        - Docker (ghcr.io/drbiobit/snag)
+        - Docker Compose
+        - From source (python snag.py)
+        - systemd
+        - PM2
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Docker image tag, git tag, or commit SHA.
+      placeholder: e.g. v1.0.1, latest, or the output of `git rev-parse --short HEAD`
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: OS / environment
+      description: Host OS, and container OS if using Docker.
+      placeholder: e.g. Ubuntu 24.04, macOS 15, Debian 12
+    validations:
+      required: false
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: A clear description of the unexpected behavior.
+      placeholder: Tell us what you expected to happen, and what actually happened.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: Numbered steps someone else can follow to hit the same bug.
+      placeholder: |
+        1. Start the app with …
+        2. Go to …
+        3. Click …
+        4. See error …
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs / output
+      description: Paste any error messages, stack traces, or `docker logs` output. Wrap in a code block.
+      render: shell
+    validations:
+      required: false
+  - type: textarea
+    id: extra
+    attributes:
+      label: Additional context
+      description: Anything else that might help — screenshots, config snippets, yt-dlp/ffmpeg versions.
+    validations:
+      required: false

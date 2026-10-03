@@ -1,0 +1,15 @@
+name: "Do not create issues here"
+about: This repository only accepts bug reports, feature requests, and questions through the templates above.
+title: ""
+labels: [invalid]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please use one of the provided templates:
+
+        - **Bug report** — for unexpected behavior or errors
+        - **Feature request** — for new features or improvements
+        - **Question / help** — for usage questions
+
+        Unlabeled issues without a template may be closed.
