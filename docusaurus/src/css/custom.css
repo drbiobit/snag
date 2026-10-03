@@ -1,8 +1,8 @@
 /* Snag docs - custom theme.
-   Green accent (matches the app icon) + Ubuntu Mono, to match the
+   Green accent (matches the app icon) + Source Code Pro, to match the
    pure-black terminal feel of the Snag UI. */
 
-@import url('https://fonts.googleapis.com/css2?family=Ubuntu+Mono:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Source+Code+Pro:wght@400;700&display=swap');
 
 :root {
   --ifm-color-primary: #3ddc84;
@@ -13,9 +13,9 @@
   --ifm-color-primary-lighter: #5ae49c;
   --ifm-color-primary-lightest: #86efac;
   --ifm-code-font-size: 95%;
-  --ifm-font-family-base: 'Ubuntu Mono', ui-monospace, SFMono-Regular, Menlo,
+  --ifm-font-family-base: 'Source Code Pro', ui-monospace, SFMono-Regular, Menlo,
     Monaco, Consolas, monospace;
-  --ifm-font-family-monospace: 'Ubuntu Mono', ui-monospace, SFMono-Regular,
+  --ifm-font-family-monospace: 'Source Code Pro', ui-monospace, SFMono-Regular,
     Menlo, Monaco, Consolas, monospace;
   --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
 }
