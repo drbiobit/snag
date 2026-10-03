@@ -534,10 +534,16 @@ def parse_progress(line):
 # Each such line marks the start of a new item, so counting them gives the
 # current file index. The item's title is the next bare "[info] <title>" line.
 NEW_ITEM_RE = re.compile(r'\[info\]\s+Extracting URL:')
-# The line yt-dlp prints with the file it is about to write:
-#   [info] Destination: /path/to/file.mp4
+# The lines yt-dlp prints with the file it is about to write:
+#   [download] Destination: /path/to/file.f397.mp4
+#   [download] Destination: /path/to/file.f251.webm
+#   [Merger] Merging formats into "/path/to/file.mp4"
+#   [ExtractAudio] Destination: /path/to/file.mp3
 # Capturing these lets the UI show the exact file(s) a job produced.
-DEST_RE = re.compile(r'\[info\]\s+Destination:\s+(.+)$')
+DEST_RE = re.compile(
+    r'\[(?:download|ExtractAudio)\]\s+Destination:\s+(.+)$'
+    r'|\[Merger\]\s+Merging formats into\s+"(.+)"'
+)
 # A bare "[info] <title>" line (not a known sub-status message).
 INFO_TITLE_RE = re.compile(
     r'^\[info\]\s+'
@@ -618,11 +624,20 @@ def run_job(job_id, url, d, audio_only, audio_format, audio_quality,
                     current_title = m.group(0)[len('[info] '):].strip()
 
             # Remember the file yt-dlp is writing so the UI can show the
-            # exact result after completion.
+            # exact result after completion. Intermediate files (e.g.
+            # .f397.mp4, .f251.webm) are replaced by the final merged/
+            # converted file once that line appears.
             m = DEST_RE.search(line)
             if m:
-                path = os.path.abspath(m.group(1).strip())
-                files.append(os.path.relpath(path, DOWNLOADS_DIR))
+                raw = m.group(1) or m.group(2)
+                path = os.path.abspath(raw.strip())
+                rel = os.path.relpath(path, DOWNLOADS_DIR)
+                # Strip yt-dlp's format suffix (.f397, .f251, etc.) so
+                # intermediate streams and the final file share a key.
+                base = re.sub(r'\.f\d+$', '', os.path.splitext(os.path.basename(rel))[0])
+                files[:] = [f for f in files
+                            if re.sub(r'\.f\d+$', '', os.path.splitext(os.path.basename(f))[0]) != base]
+                files.append(rel)
                 job['files'] = list(files)
 
             # Update progress if this line carries progress info.
