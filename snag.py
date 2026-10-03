@@ -80,26 +80,33 @@ previews_lock = threading.Lock()
 # Authentication
 # ---------------------------------------------------------------------------
 
-# Where the user store lives (on the /data volume in Docker).
+# Where auth data (users.json, secret) lives. Kept in a separate .config/
+# folder (NOT inside DOWNLOADS_DIR) so it never shows up in the downloads
+# list, can't be downloaded via /downloads/<name>, and can't be accidentally
+# deleted from the file manager.
+#
+# In Docker, DATA_DIR defaults to /data (the mounted volume), so auth files
+# land at /data/.config/ and persist across container rebuilds.
 # If the configured directory isn't writable (e.g. a stale root-owned named
 # volume), fall back to a writable location so the app can still boot. The
 # docker-entrypoint.sh normally fixes ownership before we get here; this is a
 # safety net for edge cases (e.g. a volume created by an older image).
 DATA_DIR = os.environ.get('DATA_DIR') or os.path.join(BASE, 'data')
+CONFIG_DIR = os.path.join(DATA_DIR, '.config')
 try:
-    os.makedirs(DATA_DIR, exist_ok=True)
+    os.makedirs(CONFIG_DIR, exist_ok=True)
     # Probe writability with a temp file.
-    _probe = os.path.join(DATA_DIR, '.write_test')
+    _probe = os.path.join(CONFIG_DIR, '.write_test')
     with open(_probe, 'w') as _f:
         _f.write('ok')
     os.remove(_probe)
 except (PermissionError, OSError):
-    _fallback = os.path.join(BASE, 'data')
-    print(f"WARNING: {DATA_DIR} is not writable, falling back to {_fallback}", file=sys.stderr)
-    DATA_DIR = _fallback
-    os.makedirs(DATA_DIR, exist_ok=True)
-USERS_FILE = os.path.join(DATA_DIR, 'users.json')
-SECRET_FILE = os.path.join(DATA_DIR, 'secret')
+    _fallback = os.path.join(BASE, 'data', '.config')
+    print(f"WARNING: {CONFIG_DIR} is not writable, falling back to {_fallback}", file=sys.stderr)
+    CONFIG_DIR = _fallback
+    os.makedirs(CONFIG_DIR, exist_ok=True)
+USERS_FILE = os.path.join(CONFIG_DIR, 'users.json')
+SECRET_FILE = os.path.join(CONFIG_DIR, 'secret')
 
 # Session signing key: env var wins, otherwise generate once and persist so
 # sessions survive container restarts.
@@ -895,9 +902,21 @@ def preview():
 @app.route('/downloads/<path:name>')
 @login_required
 def download_file(name):
-    """Serve a finished file from the downloads folder."""
+    """Serve a finished file from the downloads folder.
+
+    Streams the file in chunks so large downloads don't hold a thread for
+    the entire transfer or load the whole file into memory.
+    """
+    # Block access to the .config/ folder (auth data) even if it somehow
+    # ends up inside DOWNLOADS_DIR.
+    if name.startswith('.config') or '/.config/' in name:
+        return jsonify(success=False, error='File not found'), 404
     try:
-        return send_from_directory(DOWNLOADS_DIR, name, as_attachment=True)
+        response = send_from_directory(DOWNLOADS_DIR, name, as_attachment=True)
+        # Prevent reverse proxies (nginx, etc.) from buffering the entire
+        # response before forwarding it to the client.
+        response.headers['X-Accel-Buffering'] = 'no'
+        return response
     except Exception:
         return jsonify(success=False, error='File not found'), 404
 
@@ -906,6 +925,9 @@ def download_file(name):
 @login_required
 def delete_file(name):
     """Delete a file from the downloads folder."""
+    # Block deletion of the .config/ folder (auth data).
+    if name.startswith('.config') or '/.config/' in name:
+        return jsonify(success=False, error='Invalid path'), 400
     # Resolve the real path and make sure it's strictly inside DOWNLOADS_DIR
     # so a crafted name can't delete files elsewhere on disk.
     target = os.path.realpath(os.path.join(DOWNLOADS_DIR, name))

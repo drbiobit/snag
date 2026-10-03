@@ -22,8 +22,10 @@ import os
 workers = int(os.environ.get("GUNICORN_WORKERS", 1))
 
 # Threads let the single worker serve several requests at once
-# (useful while a download job is being polled).
-threads = 4
+# (useful while a download job is being polled AND a large file is being
+# streamed to the browser). 8 threads handles: 1-2 active file downloads +
+# 1-2 status polls + 1-2 API calls + headroom.
+threads = 8
 
 # --- Timeouts ------------------------------------------------------------
 # Downloads run as background threads and the HTTP request returns quickly,
