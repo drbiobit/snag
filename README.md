@@ -37,6 +37,20 @@ Open http://localhost:8000. On first visit you'll be asked to **create an
 account** (or set `SNAG_USER` / `SNAG_PASSWORD` to skip it — see
 [Authentication](#authentication)).
 
+> **Upgrading from an older image?** Pull the latest image and recreate the
+> container — your volume is untouched, so downloads and your account persist:
+>
+> ```bash
+> docker pull ghcr.io/drbiobit/snag:latest
+> docker rm -f snag          # stop + remove the old container (volume kept)
+> docker run -d --name snag -p 8000:8000 -v ./downloads:/data ghcr.io/drbiobit/snag:latest
+> ```
+>
+> Recent images fixed a bug where auth data (`users.json`) was lost on every
+> container restart, making the app re-prompt for account setup. If you were
+> hit by that, your account may need to be re-created once after upgrading —
+> downloads in the volume are unaffected.
+
 ### From source
 
 Requires Python 3.10+, [yt-dlp](https://github.com/yt-dlp/yt-dlp), and
