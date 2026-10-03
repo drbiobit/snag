@@ -12,6 +12,7 @@
   --ifm-color-primary-light: #4ee091;
   --ifm-color-primary-lighter: #5ae49c;
   --ifm-color-primary-lightest: #86efac;
+  --ifm-font-size-base: 15px;
   --ifm-code-font-size: 100%;
   --ifm-font-family-base: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI',
     Roboto, Oxygen, Ubuntu, sans-serif;
