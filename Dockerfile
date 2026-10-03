@@ -50,9 +50,13 @@ COPY frontend ./frontend
 # --- Runtime configuration -------------------------------------------------
 # Where downloads are stored. Overridable at run time, e.g.
 #     docker run -e DOWNLOAD_DIR=/data -v snag-data:/data snag
+# DATA_DIR must point at the same mounted volume so auth data (users.json,
+# secret) survives container rebuilds - otherwise the user store is lost on
+# every restart and the app re-prompts for account setup.
 # GUNICORN_WORKERS must stay 1: job state lives in process memory (see
 # gunicorn.conf.py), so multiple workers would break status polling.
 ENV DOWNLOAD_DIR=/data \
+    DATA_DIR=/data \
     GUNICORN_WORKERS=1 \
     PORT=8000
 

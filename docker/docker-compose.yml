@@ -19,6 +19,10 @@ services:
     environment:
       # Where downloads are stored inside the container (mounted below).
       DOWNLOAD_DIR: /data
+      # Auth data (users.json, secret) lives on the same volume so it
+      # survives container rebuilds - without this the app re-prompts for
+      # account setup on every restart.
+      DATA_DIR: /data
       # Must stay 1: job state is in process memory, so multiple workers
       # would break /api/status and /api/cancel polling.
       GUNICORN_WORKERS: "1"
