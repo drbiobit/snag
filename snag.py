@@ -29,9 +29,12 @@ import hashlib
 import subprocess
 import threading
 import time
+import shutil
+import tempfile
 from datetime import datetime
 from functools import wraps
 
+import requests
 from flask import Flask, request, jsonify, send_from_directory, session, redirect, url_for
 
 # When the app started (used by /health to report uptime).
@@ -213,6 +216,24 @@ def clear_all_users():
     """Remove all users (resets auth to first-run state)."""
     conn = _get_db()
     conn.execute("DELETE FROM users")
+    conn.commit()
+    conn.close()
+
+def get_meta(key, default=None):
+    """Read a value from the meta key-value table. Returns default if absent."""
+    conn = _get_db()
+    row = conn.execute("SELECT value FROM meta WHERE key = ?", (key,)).fetchone()
+    conn.close()
+    return row['value'] if row else default
+
+def set_meta(key, value):
+    """Insert or update a value in the meta key-value table."""
+    conn = _get_db()
+    conn.execute(
+        "INSERT INTO meta (key, value) VALUES (?, ?) "
+        "ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+        (key, value)
+    )
     conn.commit()
     conn.close()
 
@@ -815,6 +836,203 @@ def downloads_page():
 def history_page():
     """Serve the download history page."""
     return send_from_directory(app.static_folder, 'history.html')
+
+
+@app.route('/summarize')
+@login_required
+def summarize_page():
+    """Serve the YouTube -> transcript -> AI summary page."""
+    return send_from_directory(app.static_folder, 'summarize.html')
+
+
+# ---------------------------------------------------------------------------
+# AI summarize (YouTube -> transcript -> AI article)
+# ---------------------------------------------------------------------------
+#
+# The pipeline is two plain scripts in the yt_summarize/ folder, run as
+# subprocesses (no hardcoded endpoint / port / key anywhere):
+#   - yt-transcribe.py  : YouTube URL -> transcript markdown
+#   - summarize.py      : transcript + system prompt -> AI article
+#
+# All endpoint / model / key values come from the user's saved settings
+# (stored in the meta table). Local AI is encouraged, but any OpenAI-
+# compatible endpoint (including a cloud one) works.
+
+# Folder holding the two pipeline scripts + the default system prompt.
+YT_SUMMARIZE_DIR = os.path.join(BASE, 'yt_summarize')
+YT_TRANSCRIBE_SCRIPT = os.path.join(YT_SUMMARIZE_DIR, 'yt-transcribe.py')
+SUMMARIZE_SCRIPT = os.path.join(YT_SUMMARIZE_DIR, 'summarize.py')
+DEFAULT_SYSTEM_PROMPT = os.path.join(YT_SUMMARIZE_DIR, 'system-prompt.md')
+
+# Hard cap on how long a single subprocess may run (30 min).
+AI_SUBPROCESS_TIMEOUT = 1800
+
+# The AI settings keys (stored in the meta table) and their defaults.
+# The endpoint intentionally has NO default - the user must configure it.
+AI_SETTINGS = {
+    'ai_endpoint': '',
+    'ai_model': '',
+    'ai_api_key': '',
+    'ai_temperature': '0.4',
+    'ai_timeout': '300',
+    'ai_langs': 'en',
+}
+
+
+def get_ai_settings():
+    """Return the current AI settings, falling back to defaults for missing keys."""
+    out = {}
+    for key, default in AI_SETTINGS.items():
+        out[key] = get_meta(key, default)
+    return out
+
+
+def save_ai_settings(d):
+    """Persist the provided AI settings (only the known keys)."""
+    for key in AI_SETTINGS:
+        if key in d:
+            set_meta(key, str(d[key]).strip())
+
+
+def _ai_headers(api_key=''):
+    """Build request headers for the AI endpoint (Bearer auth only when a key is set)."""
+    headers = {'Content-Type': 'application/json'}
+    if api_key:
+        headers['Authorization'] = f'Bearer {api_key}'
+    return headers
+
+
+def _clean_ansi(s):
+    """Strip ANSI color codes from subprocess output."""
+    return re.sub(r'\x1b\[[0-9;]*m', '', s or '')
+
+
+@app.route('/api/ai/settings', methods=['GET', 'POST'])
+@login_required
+def ai_settings():
+    """Read (GET) or update (POST) the AI summarize settings."""
+    if request.method == 'POST':
+        d = request.get_json(silent=True) or {}
+        save_ai_settings(d)
+        return jsonify(success=True, settings=get_ai_settings())
+    return jsonify(success=True, settings=get_ai_settings(),
+                   has_endpoint=bool(get_meta('ai_endpoint', '')))
+
+
+@app.route('/api/ai/models', methods=['GET'])
+@login_required
+def ai_models():
+    """List the models available at the configured (or requested) endpoint."""
+    endpoint = (request.args.get('endpoint') or get_meta('ai_endpoint', '')).strip()
+    if not endpoint:
+        return jsonify(success=False, error='No endpoint configured. Set it in Settings.', models=[])
+    api_key = get_meta('ai_api_key', '')
+    try:
+        r = requests.get(endpoint.rstrip('/') + '/models',
+                         headers=_ai_headers(api_key), timeout=15)
+        r.raise_for_status()
+        data = r.json()
+        models = sorted({m.get('id') for m in data.get('data', []) if m.get('id')})
+        return jsonify(success=True, models=models)
+    except Exception as e:
+        return jsonify(success=False, error=str(e), models=[])
+
+
+@app.route('/api/ai/transcript', methods=['POST'])
+@login_required
+def ai_transcript():
+    """Fetch a YouTube video's transcript by running yt-transcribe.py."""
+    d = request.get_json(silent=True) or {}
+    url = (d.get('url') or '').strip()
+    if not url:
+        return jsonify(success=False, error='Missing URL'), 400
+
+    langs_raw = (d.get('languages') or get_meta('ai_langs', 'en')).strip()
+    langs = [x.strip() for x in re.split(r'[,\s]+', langs_raw) if x.strip()] or ['en']
+
+    tmpdir = tempfile.mkdtemp(prefix='snag_ai_')
+    try:
+        out_file = os.path.join(tmpdir, 'transcript.md')
+        cmd = [sys.executable, YT_TRANSCRIBE_SCRIPT, url, '-o', out_file, '-l', *langs]
+        try:
+            proc = subprocess.run(cmd, cwd=YT_SUMMARIZE_DIR,
+                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                  text=True, timeout=AI_SUBPROCESS_TIMEOUT)
+        except subprocess.TimeoutExpired:
+            return jsonify(success=False,
+                           error=f'Transcript fetch timed out after {AI_SUBPROCESS_TIMEOUT}s'), 500
+        except FileNotFoundError:
+            return jsonify(success=False, error='yt-transcribe.py not found'), 500
+
+        if proc.returncode != 0 or not os.path.isfile(out_file):
+            err = _clean_ansi(proc.stderr) or _clean_ansi(proc.stdout) or 'transcript fetch failed'
+            return jsonify(success=False, error=err.strip()[-1200:]), 500
+
+        text = open(out_file, encoding='utf-8').read()
+        m = re.search(r'\*\*Video ID:\*\*\s*`([^`]+)`', text)
+        return jsonify(success=True, transcript=text,
+                       video_id=m.group(1) if m else '')
+    finally:
+        shutil.rmtree(tmpdir, ignore_errors=True)
+
+
+@app.route('/api/ai/summarize', methods=['POST'])
+@login_required
+def ai_summarize():
+    """Summarize a transcript by running summarize.py against the configured endpoint."""
+    d = request.get_json(silent=True) or {}
+    transcript = (d.get('transcript') or '').strip()
+    if not transcript:
+        return jsonify(success=False, error='Empty transcript'), 400
+
+    settings = get_ai_settings()
+    endpoint = (d.get('endpoint') or settings['ai_endpoint']).strip()
+    model = (d.get('model') or settings['ai_model']).strip()
+    if not endpoint:
+        return jsonify(success=False, error='No endpoint configured. Set it in Settings.'), 400
+    if not model:
+        return jsonify(success=False, error='No model selected. Pick one or set it in Settings.'), 400
+
+    api_key = settings['ai_api_key']
+    temperature = d.get('temperature', settings['ai_temperature'])
+    timeout = int(d.get('timeout', settings['ai_timeout']) or 300)
+
+    tmpdir = tempfile.mkdtemp(prefix='snag_ai_')
+    try:
+        transcript_file = os.path.join(tmpdir, 'transcript.md')
+        output_file = os.path.join(tmpdir, 'summary.md')
+        with open(transcript_file, 'w', encoding='utf-8') as f:
+            f.write(transcript)
+
+        cmd = [
+            sys.executable, SUMMARIZE_SCRIPT,
+            transcript_file,
+            '--system', DEFAULT_SYSTEM_PROMPT,
+            '--endpoint', endpoint,
+            '--model', model,
+            '--output', output_file,
+            '--timeout', str(timeout),
+            '--temperature', str(temperature),
+            '--api-key', api_key,
+        ]
+        try:
+            proc = subprocess.run(cmd, cwd=YT_SUMMARIZE_DIR,
+                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                  text=True, timeout=timeout + 120)
+        except subprocess.TimeoutExpired:
+            return jsonify(success=False,
+                           error=f'Summarize timed out after {timeout + 120}s'), 500
+        except FileNotFoundError:
+            return jsonify(success=False, error='summarize.py not found'), 500
+
+        if proc.returncode != 0 or not os.path.isfile(output_file):
+            err = _clean_ansi(proc.stderr) or _clean_ansi(proc.stdout) or 'summarize failed'
+            return jsonify(success=False, error=err.strip()[-1800:]), 500
+
+        article = open(output_file, encoding='utf-8').read()
+        return jsonify(success=True, article=article)
+    finally:
+        shutil.rmtree(tmpdir, ignore_errors=True)
 
 
 @app.route('/api/validate', methods=['POST'])
