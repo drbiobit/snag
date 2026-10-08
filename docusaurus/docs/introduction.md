@@ -29,6 +29,7 @@ it works under the hood.
 | [Configuration](/configuration) | Every environment variable, the authentication model, and the full HTTP API. |
 | [Code Reference](/code-reference) | A file-by-file, human-written walkthrough of `snag.py` and the frontend. |
 | [yt-dlp Flags Reference](/yt-dlp-flags) | Every yt-dlp flag Snag exposes, and what each option does. |
+| [AI Summarize](/ai-summarize) | Turn a YouTube video into an AI-written Markdown article — setup, config, and the API. |
 
 ## Quick links
 

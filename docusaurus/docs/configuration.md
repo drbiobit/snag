@@ -97,6 +97,26 @@ file names, sizes, and timestamps.
 - **Clear history** — deletes all history rows (files on disk are untouched).
 - **Reset credentials** — deletes the stored account and logs you out.
 
+## AI / summarize settings
+
+The **Summarize** page (YouTube → transcript → AI article) is configured from
+the web UI, not environment variables. Its settings are stored in the SQLite
+database (the `meta` table) and shared across all browsers signed in to the
+account. Open **Settings → AI / summarize** to edit them.
+
+| Setting | Key | Default | What it does |
+|---------|-----|---------|--------------|
+| Endpoint | `ai_endpoint` | *(empty)* | Any OpenAI-compatible base URL, e.g. `http://localhost:8080/v1`. **No default** — you must set it. |
+| Model | `ai_model` | *(empty)* | The model id to send requests to. Leave blank to pick from the loaded model list. |
+| API key | `ai_api_key` | *(empty)* | Optional. Sent as a `Bearer` token. Leave blank for a local, keyless endpoint. |
+| Temperature | `ai_temperature` | `0.4` | Sampling temperature for the summary. |
+| Timeout | `ai_timeout` | `300` | Request timeout in seconds for the summarize call. |
+| Transcript languages | `ai_langs` | `en` | Priority-ordered language codes for transcript fetch (comma- or space-separated). |
+
+> **Only local AI is encouraged.** You can still point the endpoint at an
+> OpenAI-compatible cloud URL if you want, but the feature is designed around a
+> local endpoint (e.g. a self-hosted `llama.cpp` / `vLLM` / Ollama server).
+
 ## The HTTP API
 
 The frontend is a thin client over this API. All endpoints except
@@ -145,6 +165,16 @@ for how each maps to a `yt-dlp` flag.
 |--------|------|---------|
 | `GET` | `/api/history` | Return the download history (most recent first). |
 | `POST` | `/api/history/clear` | Delete all download history entries. |
+
+### AI / summarize
+
+| Method | Path | Purpose |
+|--------|------|---------|
+| `GET` | `/api/ai/settings` | Read the saved AI settings. Returns `{settings, has_endpoint}`. |
+| `POST` | `/api/ai/settings` | Save AI settings. Body: any of `ai_endpoint`, `ai_model`, `ai_api_key`, `ai_temperature`, `ai_timeout`, `ai_langs`. |
+| `GET` | `/api/ai/models` | List models from the configured (or `?endpoint=`) endpoint. Returns `{models: [...]}`. |
+| `POST` | `/api/ai/transcript` | Fetch a video's transcript by running `yt-transcribe.py`. Body: `{url, languages?}`. Returns `{transcript, video_id}`. |
+| `POST` | `/api/ai/summarize` | Summarize a transcript by running `summarize.py` against the configured endpoint. Body: `{transcript, model?, temperature?}`. Returns `{article}`. |
 
 ### Preview & health
 

@@ -71,7 +71,11 @@ progress without any websockets.
 snag/
 ├── snag.py                 # the entire backend (Flask app)
 ├── gunicorn.conf.py        # production server config
-├── requirements.txt        # Flask + gunicorn (yt-dlp is a CLI, not a dep)
+├── requirements.txt        # Flask, gunicorn, requests, youtube-transcript-api
+├── yt_summarize/           # the AI summarize pipeline (run as subprocesses)
+│   ├── yt-transcribe.py    #   YouTube URL -> transcript.md
+│   ├── summarize.py        #   transcript + system prompt -> AI article
+│   └── system-prompt.md    #   the default summarization system prompt
 ├── Dockerfile              # Alpine + venv + yt-dlp + ffmpeg
 ├── .dockerignore           # keeps local artifacts out of the image
 ├── .env.example            # template for environment variables
@@ -85,8 +89,9 @@ snag/
     ├── index.html          # main download page
     ├── app.js              # main page logic (validate, download, poll)
     ├── login.html / .js    # first-run setup + sign-in
-    ├── settings.html / .js # theme picker + saved defaults
+    ├── settings.html / .js # theme picker + saved defaults + AI settings
     ├── downloads.html / .js# file manager (list / download / delete)
+    ├── summarize.html / .js# YouTube -> transcript -> AI article
     ├── docs.html / .js     # in-app API reference page
     ├── style.css           # all styling + theme variables
     └── theme.js            # applies the saved theme before first paint
@@ -280,8 +285,8 @@ The endpoints, grouped by purpose:
 
 **Pages** (all `@login_required`)
 - `GET /` → `index.html`, `GET /docs` → `docs.html`, `GET /settings` →
-  `settings.html`, `GET /downloads` → `downloads.html`, `GET /login` →
-  `login.html`.
+  `settings.html`, `GET /downloads` → `downloads.html`, `GET /summarize` →
+  `summarize.html`, `GET /login` → `login.html`.
 
 **Downloads**
 - `POST /api/validate` — is this a valid YouTube URL? (also reports if it's
@@ -298,6 +303,23 @@ The endpoints, grouped by purpose:
 - `GET /downloads/<name>` — serves a finished file as a download.
 - `POST /api/delete/<name>` — deletes a file, after the `is_inside_downloads`
   path-traversal check.
+
+**AI / summarize**
+- `GET|POST /api/ai/settings` — read or save the AI settings (endpoint, model,
+  optional API key, temperature, timeout, transcript languages). These live in
+  the `meta` table, not environment variables.
+- `GET /api/ai/models` — list the models at the configured (or `?endpoint=`)
+  endpoint by hitting its `/models` route.
+- `POST /api/ai/transcript` — fetch a video's transcript by running
+  `yt_summarize/yt-transcribe.py` as a subprocess. Body: `{url, languages?}`.
+- `POST /api/ai/summarize` — summarize a transcript by running
+  `yt_summarize/summarize.py` as a subprocess against the configured endpoint.
+  Body: `{transcript, model?, temperature?}`.
+
+  Both subprocess endpoints use a temp dir, run the script with the user's
+  saved settings (there is no hardcoded endpoint or key), and clean up in a
+  `finally` block. The optional API key is only sent as a `Bearer` header when
+  it's set, so a local keyless endpoint keeps working.
 
 **Preview & health**
 - `POST|GET /api/preview` — runs `yt-dlp -J` (no download) and returns the
@@ -336,16 +358,17 @@ config is small but has one critical constraint:
 
 ## `requirements.txt`
 
-Just two pinned packages:
-
 ```
 Flask==3.1.3
 gunicorn==26.0.0
+requests>=2.31.0
+youtube-transcript-api>=0.6.0
 ```
 
 `yt-dlp` is *not* here on purpose — it's a command-line tool the app shells
 out to, so the deploy scripts (and the Dockerfile) install it separately with
-`pip install yt-dlp`. Pinning Flask and gunicorn keeps deploys reproducible.
+`pip install yt-dlp`. `requests` and `youtube-transcript-api` back the AI
+summarize feature (the latter is used by `yt_summarize/yt-transcribe.py`).
 
 ---
 
@@ -416,6 +439,12 @@ Two independent features on one page:
   key. The main page's `loadDefaults()` reads that key and pre-fills the
   form, so you don't re-pick your settings every time. There's a "clear"
   button to fall back to the built-in defaults.
+- **AI / summarize settings** — a form for the endpoint, model, optional API
+  key, temperature, timeout, and transcript languages. Unlike the download
+  defaults, these are saved to the **backend** (`/api/ai/settings`, stored in
+  the `meta` table) so they're shared across browsers and used by the
+  Summarize page. A "load models" button queries the endpoint to confirm it's
+  reachable and lists what's available.
 
 ### `downloads.html` + `downloads.js` — file manager
 
@@ -424,6 +453,25 @@ size. Each row has a **download** link (`/downloads/<name>`) and a **delete**
 button (which confirms, then posts to `/api/delete/<name>` and refreshes).
 Delete buttons use event delegation because the rows are re-created on every
 refresh.
+
+### `summarize.html` + `summarize.js` — YouTube → AI article
+
+The Summarize page is a three-step pipeline. `summarize.js` drives it:
+
+- **First run** — on load it calls `GET /api/ai/settings`. If no endpoint is
+  saved yet, it shows an inline **configure** card (endpoint, model, optional
+  API key). Saving posts to `/api/ai/settings` and hides the card.
+- **Step 1 — transcript** — `getTranscript()` posts the URL (and optional
+  languages) to `/api/ai/transcript` and shows the returned transcript.
+- **Step 2 — models** — `loadModels()` hits `/api/ai/models` to fill the model
+  dropdown from the configured endpoint.
+- **Step 3 — summarize** — `summarize()` posts the transcript + chosen model
+  to `/api/ai/summarize` and renders the returned Markdown article (via
+  `marked`). **copy markdown** and **download .md** take the raw text with
+  them.
+
+Transcripts and articles are in-app only — they're never written to the
+downloads folder.
 
 ### `docs.html` + `docs.js` — in-app API reference
 
