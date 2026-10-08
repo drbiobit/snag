@@ -1,6 +1,6 @@
 # Snag
 
-**A minimal, self-hosted web UI for [yt-dlp](https://github.com/yt-dlp/yt-dlp) — paste a link, pick your options, and watch it download with live progress.**
+**A minimal, self-hosted web UI for [yt-dlp](https://github.com/yt-dlp/yt-dlp) — paste a link, pick your options, and watch it download with live progress. Plus an AI Summarize tool that turns any video, playlist, or channel into a written article.**
 
 [![CI](https://github.com/drbiobit/snag/actions/workflows/pages.yml/badge.svg)](https://github.com/drbiobit/snag/actions/workflows/pages.yml)
 [![Docker](https://img.shields.io/badge/docker-ghcr.io%2Fdrbiobit%2Fsnag-2496ed)](https://ghcr.io/drbiobit/snag)
@@ -20,6 +20,9 @@
   server. Runs on a VPS, a home server, or your laptop.
 - **Bulk-friendly.** Single videos, whole playlists, channels, or user
   profiles in one go — resumable, cancelable, up to 2 concurrent.
+- **AI Summarize.** Point it at a video, playlist, or channel and get a clean
+  Markdown article written by any OpenAI-compatible endpoint you configure.
+  No data leaves your box except the transcript you send to your own API.
 
 ## Quickstart
 
@@ -74,6 +77,9 @@ Open http://localhost:6909 (override with the `PORT` env var).
 - 🧵 **Multithreaded fragments** — parallel DASH/HLS fragment downloads
 - ✏️ **Output templating** — custom `%(title)s`-style naming for single downloads
 - ⚡ Real-time progress, up to 2 concurrent downloads, cancel anytime
+- 🧠 **AI Summarize** — 3-step pipeline (transcript → AI article → Markdown)
+  for single videos, playlists, or whole channels; works with any
+  OpenAI-compatible endpoint (OpenAI, Groq, Ollama, LM Studio, …)
 
 ## Installation
 
@@ -112,6 +118,16 @@ paste the channel URL → type: bulk → embed metadata: on → download
 Every option maps to a documented yt-dlp flag — see the
 [yt-dlp Flags Reference](https://drbiobit.github.io/snag/yt-dlp-flags).
 
+**Summarize a video into an article:**
+
+```
+Summarize tab → paste the video (or playlist/channel) URL →
+Fetch transcript → Summarize → copy or download the Markdown
+```
+
+Configure the AI endpoint, model, and system prompt once in **Settings**
+(⚙️) — see the [AI Summarize guide](https://drbiobit.github.io/snag/ai-summarize).
+
 ## Snag vs. the alternatives
 
 | | **Snag** | **yt-dlp (CLI)** | **cobalt** |
@@ -134,6 +150,7 @@ Full docs are published on GitHub Pages → **[drbiobit.github.io/snag](https://
 
 - [Deployment Guide](https://drbiobit.github.io/snag/deployment) — Docker, systemd, PM2, Mac/Windows, HTTPS
 - [Docker Deep-Dive](https://drbiobit.github.io/snag/docker) — image internals, env vars, volumes, Compose, updates
+- [AI Summarize](https://drbiobit.github.io/snag/ai-summarize) — setup, config, and the transcript → article pipeline
 - [Configuration](https://drbiobit.github.io/snag/configuration) — every env var, the auth model, and the full HTTP API
 - [Code Reference](https://drbiobit.github.io/snag/code-reference) — file-by-file walkthrough of `snag.py` + frontend
 - [yt-dlp Flags Reference](https://drbiobit.github.io/snag/yt-dlp-flags) — every flag Snag exposes
@@ -202,13 +219,18 @@ in-browser account — the setup page is skipped entirely.
 ## Project Layout
 
 ```
-snag.py                     # Flask app + yt-dlp job runner
+snag.py                     # Flask app + yt-dlp job runner + AI summarize API
 frontend/index.html         # UI
 frontend/login.html         # Login / first-setup page
+frontend/summarize.html     # AI Summarize page (3-step pipeline)
 frontend/app.js             # Frontend logic
+frontend/ai-setup.js        # One-time AI endpoint setup popup
 frontend/style.css          # Styles (pure-black terminal theme)
+yt_summarize/
+  yt-transcribe.py          # YouTube URL -> transcript Markdown
+  summarize.py              # transcript + system prompt -> AI article
 .env.example                # Environment variable reference
-data/                       # Users, session key (auto-created, git-ignored)
+data/                       # SQLite DB: users, session key, AI settings (git-ignored)
 downloads/                  # Output files
 ```
 
@@ -224,6 +246,11 @@ downloads/                  # Output files
 | `/api/status/<job_id>` | GET | job progress/status |
 | `/api/cancel/<job_id>` | POST | cancel a running job |
 | `/api/downloads` | GET | list downloaded files |
+| `/api/ai/settings` | GET/POST | read/update the AI endpoint, model, key, prompt & options |
+| `/api/ai/setup-done` | POST | mark the one-time AI setup as complete |
+| `/api/ai/models` | GET | list models from the configured endpoint |
+| `/api/ai/transcript` | POST | `{url, count?, timestamps?, languages?}` → transcript Markdown (video/playlist/channel) |
+| `/api/ai/summarize` | POST | `{transcript, temperature?, timeout?}` → AI-written article Markdown |
 
 ### Download request body
 

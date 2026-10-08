@@ -49,6 +49,9 @@ ENV PATH="/opt/venv/bin:$PATH"
 # --- Application code ------------------------------------------------------
 COPY snag.py gunicorn.conf.py docker-entrypoint.sh ./
 COPY frontend ./frontend
+# The AI summarize pipeline: two plain scripts (yt-transcribe.py, summarize.py)
+# that snag.py shells out to. Must live in the image or /api/ai/* fails.
+COPY yt_summarize ./yt_summarize
 RUN chmod +x docker-entrypoint.sh
 
 # --- Runtime configuration -------------------------------------------------
