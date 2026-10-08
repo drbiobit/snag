@@ -24,7 +24,8 @@ except ImportError:
 
 
 # No hardcoded endpoint: the caller (snag backend) always passes --endpoint.
-DEFAULT_SYSTEM_PROMPT = "system-prompt.md"
+# The system prompt is also passed in as text (--system-prompt) - it lives in
+# the app's database, not in a file.
 DEFAULT_TIMEOUT = 300  # 5 minutes
 
 
@@ -129,9 +130,10 @@ def main():
     )
     parser.add_argument("content_file", help="Path to the content/transcript file")
     parser.add_argument(
-        "--system", "-s",
-        default=DEFAULT_SYSTEM_PROMPT,
-        help=f"Path to system prompt .md file (default: {DEFAULT_SYSTEM_PROMPT})",
+        "--system-prompt", "-s",
+        default=None,
+        required=True,
+        help="The system prompt text (provided by the caller)",
     )
     parser.add_argument(
         "--endpoint", "-e",
@@ -176,13 +178,12 @@ def main():
     content = content_path.read_text(encoding="utf-8")
     print(f"📄 Loaded content: {content_path} ({len(content):,} chars)")
 
-    # --- Load system prompt ---
-    system_path = Path(args.system)
-    if not system_path.exists():
-        print(f"❌ System prompt file not found: {system_path}")
+    # --- System prompt (provided as text by the caller) ---
+    system_prompt = args.system_prompt.strip()
+    if not system_prompt:
+        print("❌ Empty system prompt")
         sys.exit(1)
-    system_prompt = system_path.read_text(encoding="utf-8")
-    print(f"🧠 Loaded system prompt: {system_path} ({len(system_prompt):,} chars)")
+    print(f"🧠 System prompt: {len(system_prompt):,} chars")
 
     # --- Choose model ---
     if args.model:

@@ -74,8 +74,7 @@ snag/
 ├── requirements.txt        # Flask, gunicorn, requests, youtube-transcript-api
 ├── yt_summarize/           # the AI summarize pipeline (run as subprocesses)
 │   ├── yt-transcribe.py    #   YouTube URL -> transcript.md
-│   ├── summarize.py        #   transcript + system prompt -> AI article
-│   └── system-prompt.md    #   the default summarization system prompt
+│   └── summarize.py        #   transcript + system prompt -> AI article
 ├── Dockerfile              # Alpine + venv + yt-dlp + ffmpeg
 ├── .dockerignore           # keeps local artifacts out of the image
 ├── .env.example            # template for environment variables
@@ -306,15 +305,20 @@ The endpoints, grouped by purpose:
 
 **AI / summarize**
 - `GET|POST /api/ai/settings` — read or save the AI settings (endpoint, model,
-  optional API key, temperature, timeout, transcript languages). These live in
-  the `meta` table, not environment variables.
+  optional API key, temperature, timeout, transcript languages, timestamps
+  default, and the editable system prompt). These live in the `meta` table, not
+  environment variables. GET also returns `has_endpoint` and `setup_done`.
+- `POST /api/ai/setup-done` — mark the one-time AI setup prompt as handled.
 - `GET /api/ai/models` — list the models at the configured (or `?endpoint=`)
   endpoint by hitting its `/models` route.
-- `POST /api/ai/transcript` — fetch a video's transcript by running
-  `yt_summarize/yt-transcribe.py` as a subprocess. Body: `{url, languages?}`.
+- `POST /api/ai/transcript` — fetch a transcript (video, playlist, or channel)
+  by running `yt_summarize/yt-transcribe.py` as a subprocess. Body:
+  `{url, type?, count?, languages?, timestamps?}`. Collections are enumerated
+  with `yt-dlp -J --flat-playlist` and combined into one Markdown document.
 - `POST /api/ai/summarize` — summarize a transcript by running
   `yt_summarize/summarize.py` as a subprocess against the configured endpoint.
-  Body: `{transcript, model?, temperature?}`.
+  Body: `{transcript, model?, temperature?, system_prompt?}`. The system prompt
+  is passed in as text (it lives in the database, not a file).
 
   Both subprocess endpoints use a temp dir, run the script with the user's
   saved settings (there is no hardcoded endpoint or key), and clean up in a
@@ -460,18 +464,33 @@ The Summarize page is a three-step pipeline. `summarize.js` drives it:
 
 - **First run** — on load it calls `GET /api/ai/settings`. If no endpoint is
   saved yet, it shows an inline **configure** card (endpoint, model, optional
-  API key). Saving posts to `/api/ai/settings` and hides the card.
-- **Step 1 — transcript** — `getTranscript()` posts the URL (and optional
-  languages) to `/api/ai/transcript` and shows the returned transcript.
+  API key). Saving posts to `/api/ai/settings` and hides the card. (The
+  one-time, skippable setup popup on the **home** page is separate — see
+  `ai-setup.js`.)
+- **Step 1 — transcript** — `getTranscript()` posts the URL plus the options
+  (type, count, languages, timestamps) to `/api/ai/transcript` and shows the
+  returned transcript. A **download transcript .md** button saves the raw text.
 - **Step 2 — models** — `loadModels()` hits `/api/ai/models` to fill the model
   dropdown from the configured endpoint.
 - **Step 3 — summarize** — `summarize()` posts the transcript + chosen model
   to `/api/ai/summarize` and renders the returned Markdown article (via
   `marked`). **copy markdown** and **download .md** take the raw text with
   them.
+- **Persistence** — the URL, transcript, article, and options are saved to
+  `localStorage` (`snag_summarize_state`) and restored on load, so a refresh or
+  page change does not lose work. **clear** wipes both the UI and the stored
+  state.
 
 Transcripts and articles are in-app only — they're never written to the
 downloads folder.
+
+### `ai-setup.js` — one-time AI setup popup (home page)
+
+On the home page, after the user has an account, `ai-setup.js` checks
+`GET /api/ai/settings`. If `setup_done` is false, it opens a modal asking for
+the endpoint, model, and optional API key. It is **skippable** (**set up
+later**) and the choice is remembered via `POST /api/ai/setup-done`, so it never
+appears again. AI stays fully optional.
 
 ### `docs.html` + `docs.js` — in-app API reference
 

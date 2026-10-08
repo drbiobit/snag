@@ -116,6 +116,10 @@
                 var el = $(pair[0]), key = pair[1];
                 if (s[key] != null) el.value = s[key];
             });
+            // System prompt (textarea) and timestamps (checkbox) are handled
+            // separately because they don't use .value the same way.
+            if (s.ai_system_prompt != null) $('ai-system-prompt').value = s.ai_system_prompt;
+            if (s.ai_timestamps != null) $('ai-timestamps').checked = s.ai_timestamps !== '0';
         } catch (e) {}
     }
 
@@ -125,6 +129,8 @@
         AI_FIELDS.forEach(function (pair) {
             body[pair[1]] = $(pair[0]).value;
         });
+        body.ai_system_prompt = $('ai-system-prompt').value;
+        body.ai_timestamps = $('ai-timestamps').checked ? '1' : '0';
         try {
             var r = await fetch('/api/ai/settings', {
                 method: 'POST',

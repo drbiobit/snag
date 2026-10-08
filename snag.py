@@ -858,17 +858,17 @@ def summarize_page():
 # (stored in the meta table). Local AI is encouraged, but any OpenAI-
 # compatible endpoint (including a cloud one) works.
 
-# Folder holding the two pipeline scripts + the default system prompt.
+# Folder holding the two pipeline scripts (run as subprocesses).
 YT_SUMMARIZE_DIR = os.path.join(BASE, 'yt_summarize')
 YT_TRANSCRIBE_SCRIPT = os.path.join(YT_SUMMARIZE_DIR, 'yt-transcribe.py')
 SUMMARIZE_SCRIPT = os.path.join(YT_SUMMARIZE_DIR, 'summarize.py')
-DEFAULT_SYSTEM_PROMPT = os.path.join(YT_SUMMARIZE_DIR, 'system-prompt.md')
 
 # Hard cap on how long a single subprocess may run (30 min).
 AI_SUBPROCESS_TIMEOUT = 1800
 
 # The AI settings keys (stored in the meta table) and their defaults.
 # The endpoint intentionally has NO default - the user must configure it.
+# ai_system_prompt and ai_setup_done are managed separately (see below).
 AI_SETTINGS = {
     'ai_endpoint': '',
     'ai_model': '',
@@ -876,7 +876,42 @@ AI_SETTINGS = {
     'ai_temperature': '0.4',
     'ai_timeout': '300',
     'ai_langs': 'en',
+    'ai_timestamps': '1',          # '1' = include timestamps, '0' = plain
 }
+
+# A basic, self-explanatory default system prompt. Seeded into the DB on first
+# start so the user always has an editable prompt; they can change it any time
+# from Settings (or the Summarize page). Stored in the meta table, not a file.
+DEFAULT_AI_SYSTEM_PROMPT = (
+    "You are a careful summarizer. You are given the transcript of a YouTube "
+    "video (or a playlist / channel of videos). Turn it into a clean, "
+    "well-structured Markdown article for a reader who wants the substance "
+    "without watching.\n"
+    "\n"
+    "Follow these rules exactly:\n"
+    "- Start with a single H1 title that captures the topic.\n"
+    "- Then a short '## Summary' section: 3-6 sentences capturing the main idea.\n"
+    "- Then a '## Key Points' section: a bulleted list of the most important "
+    "takeaways.\n"
+    "- Then one or more '## ' sections that break the content down in detail, "
+    "in the order it appears. Use H3 (###) sub-sections where it helps.\n"
+    "- End with a '## Takeaway' section: 1-3 sentences on what matters most.\n"
+    "\n"
+    "Write in clear, neutral prose. Do not invent facts that are not in the "
+    "transcript. If the transcript covers multiple videos, cover each one and "
+    "label them. Output Markdown only - no commentary about these instructions."
+)
+
+
+def _seed_ai_defaults():
+    """Seed the AI system prompt (and setup flag) into the DB on first start."""
+    if get_meta('ai_system_prompt') is None:
+        set_meta('ai_system_prompt', DEFAULT_AI_SYSTEM_PROMPT)
+    if get_meta('ai_setup_done') is None:
+        set_meta('ai_setup_done', '0')
+
+
+_seed_ai_defaults()
 
 
 def get_ai_settings():
@@ -884,14 +919,18 @@ def get_ai_settings():
     out = {}
     for key, default in AI_SETTINGS.items():
         out[key] = get_meta(key, default)
+    # The system prompt is stored separately (seeded on startup, editable).
+    out['ai_system_prompt'] = get_meta('ai_system_prompt', DEFAULT_AI_SYSTEM_PROMPT)
     return out
 
 
 def save_ai_settings(d):
-    """Persist the provided AI settings (only the known keys)."""
+    """Persist the provided AI settings (only the known keys + system prompt)."""
     for key in AI_SETTINGS:
         if key in d:
             set_meta(key, str(d[key]).strip())
+    if 'ai_system_prompt' in d:
+        set_meta('ai_system_prompt', str(d['ai_system_prompt']))
 
 
 def _ai_headers(api_key=''):
@@ -914,9 +953,24 @@ def ai_settings():
     if request.method == 'POST':
         d = request.get_json(silent=True) or {}
         save_ai_settings(d)
+        # Saving real settings counts as having done the (optional) setup.
+        if (d.get('ai_endpoint') or '').strip():
+            set_meta('ai_setup_done', '1')
         return jsonify(success=True, settings=get_ai_settings())
-    return jsonify(success=True, settings=get_ai_settings(),
-                   has_endpoint=bool(get_meta('ai_endpoint', '')))
+    return jsonify(
+        success=True,
+        settings=get_ai_settings(),
+        has_endpoint=bool((get_meta('ai_endpoint', '') or '').strip()),
+        setup_done=get_meta('ai_setup_done', '0') == '1',
+    )
+
+
+@app.route('/api/ai/setup-done', methods=['POST'])
+@login_required
+def ai_setup_done():
+    """Mark the one-time AI setup prompt as handled (skipped or completed)."""
+    set_meta('ai_setup_done', '1')
+    return jsonify(success=True)
 
 
 @app.route('/api/ai/models', methods=['GET'])
@@ -938,42 +992,157 @@ def ai_models():
         return jsonify(success=False, error=str(e), models=[])
 
 
+def _enumerate_videos(url):
+    """
+    List the video ids (+ titles) under a playlist / channel / user URL.
+
+    Uses `yt-dlp -J --flat-playlist` (fast, no per-item formats). Returns a
+    list of {'id', 'title'} dicts, or raises on failure.
+    """
+    cmd = ['yt-dlp', '-J', '--flat-playlist', url]
+    proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                          text=True, timeout=120)
+    if proc.returncode != 0:
+        raise RuntimeError((proc.stderr or 'Could not read this URL').strip()[-300:])
+    data = json.loads(proc.stdout)
+    out = []
+    for e in (data.get('entries') or []):
+        vid = e.get('id')
+        if not vid:
+            continue
+        out.append({'id': vid, 'title': e.get('title') or vid})
+    return out
+
+
 @app.route('/api/ai/transcript', methods=['POST'])
 @login_required
 def ai_transcript():
-    """Fetch a YouTube video's transcript by running yt-transcribe.py."""
+    """
+    Fetch a transcript by running yt-transcribe.py.
+
+    Accepts a single video, or a playlist / channel / user URL. For collections
+    it enumerates the videos (via yt-dlp) and fetches each transcript,
+    combining them into one Markdown document. `count` limits how many videos
+    are fetched (blank/0 = all). `timestamps` toggles the timestamped section.
+    """
     d = request.get_json(silent=True) or {}
     url = (d.get('url') or '').strip()
     if not url:
         return jsonify(success=False, error='Missing URL'), 400
 
+    # Decide single video vs collection.
+    collection = is_bulk(url)
+    timestamps = str(d.get('timestamps', get_meta('ai_timestamps', '1'))).strip() != '0'
+
     langs_raw = (d.get('languages') or get_meta('ai_langs', 'en')).strip()
     langs = [x.strip() for x in re.split(r'[,\s]+', langs_raw) if x.strip()] or ['en']
 
+    # Optional cap on how many videos to fetch (blank/0 = all).
+    count = 0
+    try:
+        count = int(d.get('count') or 0)
+    except (TypeError, ValueError):
+        count = 0
+
     tmpdir = tempfile.mkdtemp(prefix='snag_ai_')
     try:
-        out_file = os.path.join(tmpdir, 'transcript.md')
-        cmd = [sys.executable, YT_TRANSCRIBE_SCRIPT, url, '-o', out_file, '-l', *langs]
+        # --- Single video -------------------------------------------------
+        if not collection:
+            out_file = os.path.join(tmpdir, 'transcript.md')
+            cmd = [sys.executable, YT_TRANSCRIBE_SCRIPT, url, '-o', out_file, '-l', *langs]
+            if not timestamps:
+                cmd.append('--no-timestamps')
+            proc = _run_transcribe(cmd)
+            if proc is _NO_SCRIPT:
+                return jsonify(success=False, error='yt-transcribe.py not found'), 500
+            if proc is None:
+                return jsonify(success=False,
+                               error=f'Transcript fetch timed out after {AI_SUBPROCESS_TIMEOUT}s'), 500
+            if proc.returncode != 0 or not os.path.isfile(out_file):
+                err = _clean_ansi(proc.stderr) or _clean_ansi(proc.stdout) or 'transcript fetch failed'
+                return jsonify(success=False, error=err.strip()[-1200:]), 500
+            text = open(out_file, encoding='utf-8').read()
+            m = re.search(r'\*\*Video ID:\*\*\s*`([^`]+)`', text)
+            return jsonify(success=True, transcript=text,
+                           video_id=m.group(1) if m else '', count=1)
+
+        # --- Collection (playlist / channel / user) -----------------------
         try:
-            proc = subprocess.run(cmd, cwd=YT_SUMMARIZE_DIR,
-                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                                  text=True, timeout=AI_SUBPROCESS_TIMEOUT)
+            videos = _enumerate_videos(url)
         except subprocess.TimeoutExpired:
-            return jsonify(success=False,
-                           error=f'Transcript fetch timed out after {AI_SUBPROCESS_TIMEOUT}s'), 500
+            return jsonify(success=False, error='Timed out reading this URL'), 500
         except FileNotFoundError:
-            return jsonify(success=False, error='yt-transcribe.py not found'), 500
+            return jsonify(success=False, error='yt-dlp not found. Install it first.'), 500
+        except Exception as e:
+            return jsonify(success=False, error=str(e)[:300]), 400
 
-        if proc.returncode != 0 or not os.path.isfile(out_file):
-            err = _clean_ansi(proc.stderr) or _clean_ansi(proc.stdout) or 'transcript fetch failed'
-            return jsonify(success=False, error=err.strip()[-1200:]), 500
+        if not videos:
+            return jsonify(success=False, error='No videos found at that URL'), 400
+        if count > 0:
+            videos = videos[:count]
 
-        text = open(out_file, encoding='utf-8').read()
-        m = re.search(r'\*\*Video ID:\*\*\s*`([^`]+)`', text)
-        return jsonify(success=True, transcript=text,
-                       video_id=m.group(1) if m else '')
+        # Fetch each video's transcript, skipping any that have no captions.
+        sections, skipped, done = [], 0, 0
+        for v in videos:
+            vfile = os.path.join(tmpdir, f"v_{v['id']}.md")
+            cmd = [sys.executable, YT_TRANSCRIBE_SCRIPT, v['id'], '-o', vfile, '-l', *langs]
+            if not timestamps:
+                cmd.append('--no-timestamps')
+            proc = _run_transcribe(cmd)
+            if proc is _NO_SCRIPT:
+                return jsonify(success=False, error='yt-transcribe.py not found'), 500
+            if proc is None or proc.returncode != 0 or not os.path.isfile(vfile):
+                skipped += 1
+                continue
+            body = open(vfile, encoding='utf-8').read()
+            # Drop the per-video header block (the "# YouTube Transcript" block
+            # up to and including the first '---') so the combined doc stays
+            # clean; keep the transcript body (timestamped + continuous).
+            if '---' in body:
+                body = body.split('---', 1)[1].strip()
+            sections.append(f"## {v['title']}\n\n{body}\n")
+            done += 1
+
+        if not sections:
+            return jsonify(success=False,
+                           error=f'No transcripts found ({skipped} video(s) had no captions).'), 400
+
+        header = [
+            "# Combined Transcript",
+            "",
+            f"- **Source:** {url}",
+            f"- **Videos included:** {done}",
+            f"- **Skipped (no captions):** {skipped}",
+            f"- **Languages:** {', '.join(langs)}",
+            f"- **Extracted on:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+            "",
+            "---",
+            "",
+        ]
+        combined = "\n".join(header) + "\n\n".join(sections)
+        return jsonify(success=True, transcript=combined, count=done, skipped=skipped)
     finally:
         shutil.rmtree(tmpdir, ignore_errors=True)
+
+
+# Sentinel returned by _run_transcribe when the script is missing.
+_NO_SCRIPT = object()
+
+
+def _run_transcribe(cmd):
+    """
+    Run a yt-transcribe.py command.
+    Returns a CompletedProcess, or the _NO_SCRIPT sentinel if the script is
+    missing, or None on timeout.
+    """
+    try:
+        return subprocess.run(cmd, cwd=YT_SUMMARIZE_DIR,
+                              stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                              text=True, timeout=AI_SUBPROCESS_TIMEOUT)
+    except subprocess.TimeoutExpired:
+        return None
+    except FileNotFoundError:
+        return _NO_SCRIPT
 
 
 @app.route('/api/ai/summarize', methods=['POST'])
@@ -996,6 +1165,9 @@ def ai_summarize():
     api_key = settings['ai_api_key']
     temperature = d.get('temperature', settings['ai_temperature'])
     timeout = int(d.get('timeout', settings['ai_timeout']) or 300)
+    # System prompt comes from the DB (editable in Settings), not a file.
+    system_prompt = (d.get('system_prompt') or settings['ai_system_prompt']
+                     or DEFAULT_AI_SYSTEM_PROMPT)
 
     tmpdir = tempfile.mkdtemp(prefix='snag_ai_')
     try:
@@ -1007,7 +1179,7 @@ def ai_summarize():
         cmd = [
             sys.executable, SUMMARIZE_SCRIPT,
             transcript_file,
-            '--system', DEFAULT_SYSTEM_PROMPT,
+            '--system-prompt', system_prompt,
             '--endpoint', endpoint,
             '--model', model,
             '--output', output_file,

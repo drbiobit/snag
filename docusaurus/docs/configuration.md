@@ -112,6 +112,9 @@ account. Open **Settings → AI / summarize** to edit them.
 | Temperature | `ai_temperature` | `0.4` | Sampling temperature for the summary. |
 | Timeout | `ai_timeout` | `300` | Request timeout in seconds for the summarize call. |
 | Transcript languages | `ai_langs` | `en` | Priority-ordered language codes for transcript fetch (comma- or space-separated). |
+| Include timestamps | `ai_timestamps` | `1` | Default for the transcript's timestamped section (`1` = on, `0` = off). |
+| System prompt | `ai_system_prompt` | *(seeded)* | The instructions given to the model. Seeded with a default on first start; fully editable. |
+| Setup done | `ai_setup_done` | `0` | Whether the one-time AI setup prompt has been handled (`1` = done/skipped). Managed automatically. |
 
 > **Only local AI is encouraged.** You can still point the endpoint at an
 > OpenAI-compatible cloud URL if you want, but the feature is designed around a
@@ -170,11 +173,12 @@ for how each maps to a `yt-dlp` flag.
 
 | Method | Path | Purpose |
 |--------|------|---------|
-| `GET` | `/api/ai/settings` | Read the saved AI settings. Returns `{settings, has_endpoint}`. |
-| `POST` | `/api/ai/settings` | Save AI settings. Body: any of `ai_endpoint`, `ai_model`, `ai_api_key`, `ai_temperature`, `ai_timeout`, `ai_langs`. |
+| `GET` | `/api/ai/settings` | Read the saved AI settings. Returns `{settings, has_endpoint, setup_done}`. |
+| `POST` | `/api/ai/settings` | Save AI settings. Body: any of `ai_endpoint`, `ai_model`, `ai_api_key`, `ai_temperature`, `ai_timeout`, `ai_langs`, `ai_timestamps`, `ai_system_prompt`. |
+| `POST` | `/api/ai/setup-done` | Mark the one-time AI setup prompt as handled. |
 | `GET` | `/api/ai/models` | List models from the configured (or `?endpoint=`) endpoint. Returns `{models: [...]}`. |
-| `POST` | `/api/ai/transcript` | Fetch a video's transcript by running `yt-transcribe.py`. Body: `{url, languages?}`. Returns `{transcript, video_id}`. |
-| `POST` | `/api/ai/summarize` | Summarize a transcript by running `summarize.py` against the configured endpoint. Body: `{transcript, model?, temperature?}`. Returns `{article}`. |
+| `POST` | `/api/ai/transcript` | Fetch a transcript (video, playlist, or channel) by running `yt-transcribe.py`. Body: `{url, type?, count?, languages?, timestamps?}`. Returns `{transcript, video_id?, count?, skipped?}`. |
+| `POST` | `/api/ai/summarize` | Summarize a transcript by running `summarize.py` against the configured endpoint. Body: `{transcript, model?, temperature?, system_prompt?}`. Returns `{article}`. |
 
 ### Preview & health
 

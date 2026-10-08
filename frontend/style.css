@@ -878,3 +878,72 @@ footer a:hover { color: var(--accent); }
     margin-top: 10px;
     min-height: 16px;
 }
+
+/* --------------------------------------------------------------------------
+    Modal (overlay + centered card) - used for the one-time AI setup prompt
+    -------------------------------------------------------------------------- */
+.overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.72);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    z-index: 100;
+}
+.overlay.open { display: flex; }
+.modal {
+    background: var(--panel);
+    border: 1px solid var(--border-2);
+    border-radius: 10px;
+    width: 100%;
+    max-width: 480px;
+    padding: 22px;
+    box-shadow: 0 18px 60px rgba(0, 0, 0, 0.6);
+}
+.modal-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+}
+.modal-head h2 { font-size: 17px; }
+.modal-close {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 20px;
+    cursor: pointer;
+    line-height: 1;
+    padding: 2px 6px;
+    border-radius: 6px;
+}
+.modal-close:hover { color: var(--text); background: var(--panel-2); }
+.modal p.lead { color: var(--muted); font-size: 13px; margin-bottom: 16px; }
+.modal .field { margin-bottom: 14px; }
+.modal .field label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 5px; }
+.modal .row { display: flex; gap: 10px; }
+.modal .row .field { flex: 1; }
+.modal-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 18px;
+    align-items: center;
+}
+.modal-actions .spacer { flex: 1; }
+.modal-actions .btn { padding: 8px 14px; font-size: 13px; }
+.modal .hint { font-size: 11px; color: var(--faint); margin-top: 5px; }
+
+/* Inline checkbox row (e.g. the timestamps toggle on the Summarize page). */
+.check-line {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--muted);
+    margin: 4px 0 14px;
+    cursor: pointer;
+    user-select: none;
+}
+.check-line input { accent-color: var(--accent); width: 15px; height: 15px; }

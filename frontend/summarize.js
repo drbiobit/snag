@@ -2,10 +2,14 @@
  * Snag - summarize page logic
  *
  * Three-step pipeline:
- *   1. Paste a YouTube URL -> fetch the transcript (backend runs yt-transcribe.py)
- *   2. Review the transcript
+ *   1. Paste a YouTube URL (video, playlist or channel) -> fetch the transcript
+ *      (backend runs yt-transcribe.py; collections are enumerated and combined)
+ *   2. Review the transcript (downloadable as .md)
  *   3. Summarize it into an AI article (backend runs summarize.py against the
  *      configured OpenAI-compatible endpoint)
+ *
+ * State (url, transcript, article, options) is persisted to localStorage so a
+ * page refresh or navigation does not lose work. "Clear" wipes it.
  *
  * On first run (no endpoint saved) a config card is shown to set the endpoint,
  * model and optional api key. Settings persist in the backend (meta table).
@@ -14,11 +18,62 @@
 const $ = id => document.getElementById(id);
 const handle401 = r => { if (r.status === 401) { window.location.href = '/login'; return true; } return false; };
 
+const LS_KEY = 'snag_summarize_state';
+
 let lastTranscript = '';
 let lastArticle = '';
 let settings = {};
 
-// Show a status line (info / ok / err) with an optional spinner.
+// ---- Persistence ---------------------------------------------------------
+
+function saveState() {
+    try {
+        localStorage.setItem(LS_KEY, JSON.stringify({
+            url: $('yt-url').value,
+            type: $('yt-type').value,
+            count: $('yt-count').value,
+            langs: $('yt-langs').value,
+            timestamps: $('yt-timestamps').checked,
+            transcript: lastTranscript,
+            article: lastArticle,
+            model: $('model-select').value,
+            temperature: $('temperature').value,
+        }));
+    } catch (e) { /* storage full or unavailable - ignore */ }
+}
+
+function restoreState() {
+    let s;
+    try { s = JSON.parse(localStorage.getItem(LS_KEY) || 'null'); } catch (e) { s = null; }
+    if (!s) return;
+    if (s.url) $('yt-url').value = s.url;
+    if (s.type) $('yt-type').value = s.type;
+    if (s.count) $('yt-count').value = s.count;
+    if (s.langs) $('yt-langs').value = s.langs;
+    if (typeof s.timestamps === 'boolean') $('yt-timestamps').checked = s.timestamps;
+    if (s.temperature) $('temperature').value = s.temperature;
+
+    if (s.transcript) {
+        lastTranscript = s.transcript;
+        $('transcript-text').textContent = s.transcript;
+        $('transcript-card').style.display = '';
+        $('summarize-card').style.display = '';
+        $('transcript-meta').textContent = s.transcript.length.toLocaleString() + ' chars';
+    }
+    if (s.article) {
+        lastArticle = s.article;
+        $('article').innerHTML = window.marked ? marked.parse(s.article) : s.article;
+        $('result-meta').textContent = s.article.length.toLocaleString() + ' chars';
+        $('result-card').style.display = '';
+    }
+}
+
+function clearState() {
+    try { localStorage.removeItem(LS_KEY); } catch (e) { /* ignore */ }
+}
+
+// ---- Status helpers ------------------------------------------------------
+
 function setStatus(id, msg, kind = 'info', spinner = false) {
     const el = $(id);
     el.className = 'status-line show' + (kind === 'err' ? ' err' : kind === 'ok' ? ' ok' : '');
@@ -26,14 +81,19 @@ function setStatus(id, msg, kind = 'info', spinner = false) {
 }
 function hideStatus(id) { $(id).className = 'status-line'; }
 
-// Load saved AI settings from the backend.
+// ---- Settings ------------------------------------------------------------
+
 async function loadSettings() {
     const r = await fetch('/api/ai/settings');
     if (handle401(r)) return;
     const d = await r.json();
     settings = d.settings || {};
-    if (settings.ai_langs) $('yt-langs').value = settings.ai_langs;
+    if (settings.ai_langs && !$('yt-langs').value) $('yt-langs').value = settings.ai_langs;
     if (settings.ai_temperature) $('temperature').value = settings.ai_temperature;
+    // Timestamps default comes from settings unless the user already chose.
+    if (settings.ai_timestamps !== undefined && !localStorage.getItem(LS_KEY)) {
+        $('yt-timestamps').checked = settings.ai_timestamps !== '0';
+    }
     if (!d.has_endpoint) showConfig();
 }
 
@@ -44,7 +104,6 @@ function showConfig() {
     $('cfg-key').value = settings.ai_api_key || '';
 }
 
-// Save endpoint / model / key from the config card.
 async function saveConfig() {
     const endpoint = $('cfg-endpoint').value.trim();
     if (!endpoint) { setStatus('cfg-status', 'Endpoint is required.', 'err'); return; }
@@ -66,7 +125,6 @@ async function saveConfig() {
     loadModels();
 }
 
-// Populate the model dropdown from the configured endpoint.
 async function loadModels() {
     const sel = $('model-select');
     if (!settings.ai_endpoint) { sel.innerHTML = '<option value="">no endpoint set</option>'; return; }
@@ -93,27 +151,41 @@ async function loadModels() {
     }
 }
 
-// STEP 1: fetch the transcript.
+// ---- STEP 1: transcript --------------------------------------------------
+
 async function getTranscript() {
     const url = $('yt-url').value.trim();
-    if (!url) { setStatus('transcript-status', 'Enter a YouTube URL or video id.', 'err'); return; }
-    const langs = $('yt-langs').value.trim() || 'en';
-    setStatus('transcript-status', 'Fetching transcript\u2026', 'info', true);
+    if (!url) { setStatus('transcript-status', 'Enter a YouTube URL.', 'err'); return; }
+    const body = {
+        url,
+        type: $('yt-type').value,
+        count: $('yt-count').value.trim(),
+        languages: $('yt-langs').value.trim() || 'en',
+        timestamps: $('yt-timestamps').checked,
+    };
+    const isCollection = body.type !== 'video';
+    setStatus('transcript-status',
+        isCollection ? 'Enumerating and fetching transcripts\u2026 this can take a while.' : 'Fetching transcript\u2026',
+        'info', true);
     $('btn-transcript').disabled = true;
     try {
         const r = await fetch('/api/ai/transcript', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ url, languages: langs })
+            body: JSON.stringify(body)
         });
         if (handle401(r)) return;
         const d = await r.json();
         if (!d.success) { setStatus('transcript-status', d.error || 'Transcript failed.', 'err'); return; }
         lastTranscript = d.transcript;
         $('transcript-text').textContent = d.transcript;
-        $('transcript-meta').textContent = (d.video_id ? '#' + d.video_id + ' \u00b7 ' : '') + d.transcript.length.toLocaleString() + ' chars';
+        let meta = d.transcript.length.toLocaleString() + ' chars';
+        if (d.count) meta = d.count + ' video(s) \u00b7 ' + meta;
+        if (d.skipped) meta += ' \u00b7 ' + d.skipped + ' skipped (no captions)';
+        $('transcript-meta').textContent = meta;
         $('transcript-card').style.display = '';
         $('summarize-card').style.display = '';
         setStatus('transcript-status', 'Transcript ready.', 'ok');
+        saveState();
         loadModels();
     } catch (e) {
         setStatus('transcript-status', 'Request failed: ' + e.message, 'err');
@@ -122,7 +194,8 @@ async function getTranscript() {
     }
 }
 
-// STEP 3: summarize the transcript into an article.
+// ---- STEP 3: summarize ---------------------------------------------------
+
 async function summarize() {
     if (!lastTranscript) { setStatus('summarize-status', 'No transcript to summarize.', 'err'); return; }
     if (!settings.ai_endpoint) { showConfig(); setStatus('summarize-status', 'Configure the endpoint first.', 'err'); return; }
@@ -144,6 +217,7 @@ async function summarize() {
         $('result-meta').textContent = d.article.length.toLocaleString() + ' chars';
         $('result-card').style.display = '';
         setStatus('summarize-status', 'Done.', 'ok');
+        saveState();
         $('result-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
     } catch (e) {
         setStatus('summarize-status', 'Request failed: ' + e.message, 'err');
@@ -152,7 +226,29 @@ async function summarize() {
     }
 }
 
-// Copy the raw markdown to the clipboard.
+// ---- Downloads / copy ----------------------------------------------------
+
+function downloadBlob(text, filename, type) {
+    const blob = new Blob([text], { type });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(a.href);
+}
+
+function downloadTranscript() {
+    if (!lastTranscript) return;
+    downloadBlob(lastTranscript, 'snag-transcript.md', 'text/markdown');
+}
+
+function downloadArticle() {
+    if (!lastArticle) return;
+    downloadBlob(lastArticle, 'snag-summary.md', 'text/markdown');
+}
+
 async function copyArticle() {
     if (!lastArticle) return;
     try {
@@ -165,40 +261,52 @@ async function copyArticle() {
     }
 }
 
-// Download the article as a .md file.
-function downloadArticle() {
-    if (!lastArticle) return;
-    const blob = new Blob([lastArticle], { type: 'text/markdown' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'snag-summary.md';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(a.href);
-}
+// ---- Reset ---------------------------------------------------------------
 
-// Reset the whole pipeline.
 function clearAll() {
     lastTranscript = '';
     lastArticle = '';
     $('yt-url').value = '';
+    $('yt-count').value = '';
+    $('yt-type').value = 'auto';
+    $('yt-timestamps').checked = true;
     $('transcript-card').style.display = 'none';
     $('summarize-card').style.display = 'none';
     $('result-card').style.display = 'none';
     hideStatus('transcript-status');
     hideStatus('summarize-status');
+    clearState();
 }
 
-// Wire up the UI.
+// ---- Wire up -------------------------------------------------------------
+
 document.addEventListener('DOMContentLoaded', () => {
     $('btn-transcript').addEventListener('click', getTranscript);
     $('btn-summarize').addEventListener('click', summarize);
     $('btn-copy').addEventListener('click', copyArticle);
     $('btn-download').addEventListener('click', downloadArticle);
+    $('btn-dl-transcript').addEventListener('click', downloadTranscript);
     $('btn-clear-all').addEventListener('click', clearAll);
     $('btn-refresh-models').addEventListener('click', loadModels);
     $('cfg-save').addEventListener('click', saveConfig);
     $('cfg-load-models').addEventListener('click', loadModels);
+
+    // The count field is only meaningful for collections.
+    const typeSel = $('yt-type');
+    const countField = $('count-field');
+    function syncCountField() {
+        const show = typeSel.value !== 'video';
+        countField.style.display = show ? '' : 'none';
+    }
+    typeSel.addEventListener('change', syncCountField);
+    syncCountField();
+
+    // Persist options as they change (cheap, debounced by the browser).
+    ['yt-url', 'yt-type', 'yt-count', 'yt-langs', 'temperature'].forEach(id => {
+        $(id).addEventListener('change', saveState);
+    });
+    $('yt-timestamps').addEventListener('change', saveState);
+
+    restoreState();
     loadSettings();
 });
