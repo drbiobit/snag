@@ -27,6 +27,9 @@
                 <a href="/history" data-label="history" title="history" aria-label="history">
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8v4l3 3M3.05 11a9 9 0 1 1 .5 4M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.75L3 8"/></svg>
                 </a>
+                <a href="/summarize" data-label="summarize" title="summarize" aria-label="summarize">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/><circle cx="12" cy="12" r="3.5"/></svg>
+                </a>
                 <a href="/docs" data-label="docs" title="docs" aria-label="docs">
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h11l3 3v13H5zM8 9h8M8 13h8M8 17h5"/></svg>
                 </a>
@@ -174,6 +177,58 @@
                     <button class="btn btn-ghost" id="reset-defaults">reset</button>
                 </div>
                 <p class="muted note" id="save-note"></p>
+            </section>
+
+            <!-- AI / summarize settings: saved to the backend (meta table) -->
+            <section class="card">
+                <div class="card-head">
+                    <h2>AI / summarize</h2>
+                    <span class="muted">youtube → transcript → ai article</span>
+                </div>
+
+                <p class="muted" style="margin-bottom:16px;">
+                    Used by the <a href="/summarize" style="color:var(--accent);">summarize</a> page.
+                    Point this at any OpenAI-compatible endpoint. Local AI is encouraged;
+                    a cloud endpoint works too.
+                </p>
+
+                <div class="field">
+                    <label for="ai-endpoint">endpoint</label>
+                    <input type="text" id="ai-endpoint" placeholder="http://localhost:8080/v1" spellcheck="false" autocomplete="off">
+                </div>
+
+                <div class="row">
+                    <div class="field">
+                        <label for="ai-model">model</label>
+                        <input type="text" id="ai-model" placeholder="e.g. llama-3-70b" spellcheck="false" autocomplete="off">
+                    </div>
+                    <div class="field">
+                        <label for="ai-key">api key <span class="muted">(optional)</span></label>
+                        <input type="password" id="ai-key" placeholder="blank = no auth" spellcheck="false" autocomplete="off">
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="field">
+                        <label for="ai-temperature">temperature</label>
+                        <input type="number" id="ai-temperature" value="0.4" step="0.1" min="0" max="2">
+                    </div>
+                    <div class="field">
+                        <label for="ai-timeout">timeout <span class="muted">(seconds)</span></label>
+                        <input type="number" id="ai-timeout" value="300" step="10" min="10">
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label for="ai-langs">transcript languages <span class="muted">(priority order)</span></label>
+                    <input type="text" id="ai-langs" value="en" spellcheck="false" autocomplete="off">
+                </div>
+
+                <div class="actions">
+                    <button class="btn btn-ghost" id="ai-load-models">load models</button>
+                    <button class="btn btn-primary" id="ai-save">save ai settings</button>
+                </div>
+                <p class="muted note" id="ai-note"></p>
             </section>
         </main>
 
