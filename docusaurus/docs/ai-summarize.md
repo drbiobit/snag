@@ -68,8 +68,10 @@ captions).
 - **How many videos** is up to you: leave the **videos** field blank to fetch
   **all**, or enter a number to fetch only the first *N*. There is no
   per-video picker yet.
-- Fetches run **sequentially**, so large channels can take a while. Videos with
-  no captions in the requested languages are skipped and counted.
+- Fetches run **in parallel (4 workers)** so large channels are much faster than
+  a one-at-a-time loop. Videos with no captions in the requested languages — or
+  that time out / fail — are **skipped and counted**, and the rest still come
+  back, so one bad video never blocks the collection.
 
 ## Configuration
 

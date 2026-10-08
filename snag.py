@@ -31,6 +31,7 @@ import threading
 import time
 import shutil
 import tempfile
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from functools import wraps
 
@@ -845,6 +846,13 @@ def summarize_page():
     return send_from_directory(app.static_folder, 'summarize.html')
 
 
+@app.route('/changelog')
+@login_required
+def changelog_page():
+    """Serve the in-app changelog page."""
+    return send_from_directory(app.static_folder, 'changelog.html')
+
+
 # ---------------------------------------------------------------------------
 # AI summarize (YouTube -> transcript -> AI article)
 # ---------------------------------------------------------------------------
@@ -865,6 +873,16 @@ SUMMARIZE_SCRIPT = os.path.join(YT_SUMMARIZE_DIR, 'summarize.py')
 
 # Hard cap on how long a single subprocess may run (30 min).
 AI_SUBPROCESS_TIMEOUT = 1800
+
+# Per-video cap when fetching a transcript inside a collection (playlist /
+# channel). A video that has no captions should fail fast, but a couple of
+# videos occasionally hang on the transcript API - we don't want one stuck
+# video to consume the full 30-min budget and stall the whole collection.
+# 90s is plenty for a normal transcript fetch.
+AI_PER_VIDEO_TIMEOUT = 90
+
+# How many collection videos to fetch transcripts for in parallel.
+AI_TRANSCRIPT_WORKERS = 4
 
 # The AI settings keys (stored in the meta table) and their defaults.
 # The endpoint intentionally has NO default - the user must configure it.
@@ -1081,27 +1099,38 @@ def ai_transcript():
         if count > 0:
             videos = videos[:count]
 
-        # Fetch each video's transcript, skipping any that have no captions.
-        sections, skipped, done = [], 0, 0
-        for v in videos:
+        # Fetch each video's transcript in parallel (4 workers), skipping any
+        # that have no captions (or that time out / fail) so one bad video
+        # never blocks the rest. Results are reassembled in original order.
+        def _fetch_one(v):
             vfile = os.path.join(tmpdir, f"v_{v['id']}.md")
             cmd = [sys.executable, YT_TRANSCRIBE_SCRIPT, v['id'], '-o', vfile, '-l', *langs]
             if not timestamps:
                 cmd.append('--no-timestamps')
-            proc = _run_transcribe(cmd)
+            proc = _run_transcribe(cmd, timeout=AI_PER_VIDEO_TIMEOUT)
             if proc is _NO_SCRIPT:
-                return jsonify(success=False, error='yt-transcribe.py not found'), 500
+                return ('noscript', None)
             if proc is None or proc.returncode != 0 or not os.path.isfile(vfile):
-                skipped += 1
-                continue
+                # No captions, unavailable, or hung - mark as skipped.
+                return ('skip', None)
             body = open(vfile, encoding='utf-8').read()
             # Drop the per-video header block (the "# YouTube Transcript" block
             # up to and including the first '---') so the combined doc stays
             # clean; keep the transcript body (timestamped + continuous).
             if '---' in body:
                 body = body.split('---', 1)[1].strip()
-            sections.append(f"## {v['title']}\n\n{body}\n")
-            done += 1
+            return ('ok', f"## {v['title']}\n\n{body}\n")
+
+        with ThreadPoolExecutor(max_workers=AI_TRANSCRIPT_WORKERS) as ex:
+            results = list(ex.map(_fetch_one, videos))
+
+        # A missing script is a hard error - surface it immediately.
+        if any(r[0] == 'noscript' for r in results):
+            return jsonify(success=False, error='yt-transcribe.py not found'), 500
+
+        sections = [r[1] for r in results if r[0] == 'ok']
+        skipped = sum(1 for r in results if r[0] == 'skip')
+        done = len(sections)
 
         if not sections:
             return jsonify(success=False,
@@ -1129,7 +1158,7 @@ def ai_transcript():
 _NO_SCRIPT = object()
 
 
-def _run_transcribe(cmd):
+def _run_transcribe(cmd, timeout=AI_SUBPROCESS_TIMEOUT):
     """
     Run a yt-transcribe.py command.
     Returns a CompletedProcess, or the _NO_SCRIPT sentinel if the script is
@@ -1138,7 +1167,7 @@ def _run_transcribe(cmd):
     try:
         return subprocess.run(cmd, cwd=YT_SUMMARIZE_DIR,
                               stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                              text=True, timeout=AI_SUBPROCESS_TIMEOUT)
+                              text=True, timeout=timeout)
     except subprocess.TimeoutExpired:
         return None
     except FileNotFoundError:

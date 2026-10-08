@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snag · Changelog</title>
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+    <link rel="stylesheet" href="/static/style.css">
+    <!-- Apply the saved theme before paint to avoid a flash of the default. -->
+    <script src="/static/theme.js"></script>
+</head>
+<body>
+    <div class="layout">
+
+        <!-- Top header: app name + nav (nav lives here on every size) -->
+        <header class="topbar">
+            <a class="brand" href="/">
+                <span>snag<span class="caret">_</span></span>
+            </a>
+            <nav class="side-nav" aria-label="main">
+                <a href="/" data-label="app" title="app" aria-label="app">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5M5 9.5V20h14V9.5M9 20v-6h6v6"/></svg>
+                </a>
+                <a href="/summarize" data-label="summarize" title="summarize" aria-label="summarize">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/><path d="M9 12h6M9 15h6M9 18h4"/><path d="M18.5 13.5l.6 1.4 1.4.6-1.4.6-.6 1.4-.6-1.4-1.4-.6 1.4-.6z"/></svg>
+                </a>
+                <a href="/downloads" data-label="downloads" title="downloads" aria-label="downloads">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 11l5 5 5-5M4 20h16"/></svg>
+                </a>
+                <a href="/history" data-label="history" title="history" aria-label="history">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8v4l3 3M3.05 11a9 9 0 1 1 .5 4M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.75L3 8"/></svg>
+                </a>
+                <a href="/docs" data-label="docs" title="docs" aria-label="docs">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h11l3 3v13H5zM8 9h8M8 13h8M8 17h5"/></svg>
+                </a>
+                <a href="/changelog" class="active" data-label="changelog" title="changelog" aria-label="changelog" aria-current="page">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8v4l3 3M3.05 11a9 9 0 1 0 18 0 9 9 0 0 0-18 0z"/><path d="M5 4l2 2M19 4l-2 2M12 2v2M4.5 18.5l1.4-1.4M19.5 18.5l-1.4-1.4"/></svg>
+                </a>
+                <a href="/settings" data-label="settings" title="settings" aria-label="settings">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                </a>
+            </nav>
+        </header>
+
+        <!-- Body: content only (nav moved to the top header) -->
+        <div class="body-row">
+
+        <!-- Main content column -->
+        <div class="content">
+
+        <main class="docs">
+            <!-- Page title -->
+            <header class="docs-head">
+                <h1>Changelog</h1>
+                <p class="muted">what changed, version by version</p>
+            </header>
+
+            <p class="lead">
+                Every release of Snag, newest first. Version numbers follow
+                <a href="https://semver.org/" target="_blank">semantic versioning</a>.
+            </p>
+
+            <!-- v1.1.0 : AI Summarize -->
+            <section class="ep">
+                <div class="ep-line">
+                    <span class="ver">v1.1.0</span>
+                    <span class="ep-path">AI Summarize</span>
+                </div>
+                <p class="ep-desc">A new Summarize tab turns any YouTube video, playlist, or channel into a clean Markdown article written by the AI endpoint you configure.</p>
+                <ul class="changelog-list">
+                    <li><strong>Added</strong> — Summarize page: a 3-step pipeline (fetch transcript &rarr; review &rarr; AI article) with copy and download.</li>
+                    <li><strong>Added</strong> — transcript support for single videos, playlists, and whole channels; collections are combined into one document.</li>
+                    <li><strong>Added</strong> — AI settings (endpoint, model, API key, temperature, system prompt, timestamps) stored in the app database and editable in Settings.</li>
+                    <li><strong>Added</strong> — one-time, skippable AI setup prompt on first launch.</li>
+                    <li><strong>Added</strong> — <code>youtube-transcript-api</code> to requirements; new <code>/api/ai/*</code> endpoints (settings, models, transcript, summarize).</li>
+                    <li><strong>Fixed</strong> — the Docker image now includes the <code>yt_summarize/</code> pipeline scripts (previously missing, which broke Summarize in Docker).</li>
+                </ul>
+            </section>
+
+            <!-- v1.0.2 : SQLite auth + history + Alpine -->
+            <section class="ep">
+                <div class="ep-line">
+                    <span class="ver">v1.0.2</span>
+                    <span class="ep-path">2026-10-03</span>
+                </div>
+                <p class="ep-desc">Switched storage to SQLite, added a download history page, and moved the Docker image to Alpine.</p>
+                <ul class="changelog-list">
+                    <li><strong>Added</strong> — download history page with clear / reset controls.</li>
+                    <li><strong>Changed</strong> — auth and settings migrated from <code>users.json</code> / <code>secret</code> to a single <code>snag.db</code> SQLite database.</li>
+                    <li><strong>Changed</strong> — Docker base image switched from Ubuntu 24.04 to Alpine 3.20 (smaller image).</li>
+                    <li><strong>Fixed</strong> — Docker now fixes mounted-volume ownership on startup (no more permission denied).</li>
+                    <li><strong>Fixed</strong> — progress parsing to match yt-dlp's actual <code>[download]</code> / <code>[ExtractAudio]</code> / <code>[Merger]</code> output; intermediate format files are deduped.</li>
+                    <li><strong>Fixed</strong> — UI stall when opening a downloaded file.</li>
+                </ul>
+            </section>
+
+            <!-- v1.0.1 : Docker auth persistence -->
+            <section class="ep">
+                <div class="ep-line">
+                    <span class="ver">v1.0.1</span>
+                    <span class="ep-path">2026-10-03</span>
+                </div>
+                <p class="ep-desc">Fixed a bug where Docker lost your account on every container restart.</p>
+                <ul class="changelog-list">
+                    <li><strong>Fixed</strong> — auth data now persists on the <code>/data</code> volume across container rebuilds and restarts.</li>
+                    <li><strong>Docs</strong> — README documents the upgrade procedure for affected users.</li>
+                </ul>
+            </section>
+
+        </main>
+
+        <footer>
+            <span>snag — powered by <a href="https://github.com/yt-dlp/yt-dlp" target="_blank">yt-dlp</a></span>
+        </footer>
+
+        </div><!-- /.content -->
+        </div><!-- /.body-row -->
+    </div><!-- /.layout -->
+</body>
+</html>

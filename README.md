@@ -154,6 +154,7 @@ Full docs are published on GitHub Pages → **[drbiobit.github.io/snag](https://
 - [Configuration](https://drbiobit.github.io/snag/configuration) — every env var, the auth model, and the full HTTP API
 - [Code Reference](https://drbiobit.github.io/snag/code-reference) — file-by-file walkthrough of `snag.py` + frontend
 - [yt-dlp Flags Reference](https://drbiobit.github.io/snag/yt-dlp-flags) — every flag Snag exposes
+- [Changelog](https://drbiobit.github.io/snag/changelog) — what changed, version by version (also in-app under the **changelog** tab)
 
 ## Authentication
 

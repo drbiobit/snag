@@ -314,7 +314,10 @@ The endpoints, grouped by purpose:
 - `POST /api/ai/transcript` — fetch a transcript (video, playlist, or channel)
   by running `yt_summarize/yt-transcribe.py` as a subprocess. Body:
   `{url, type?, count?, languages?, timestamps?}`. Collections are enumerated
-  with `yt-dlp -J --flat-playlist` and combined into one Markdown document.
+  with `yt-dlp -J --flat-playlist`, then each video's transcript is fetched in
+  **parallel (4 workers)** and combined into one Markdown document. Videos with
+  no captions (or that time out / fail) are skipped and counted, so one bad
+  video never blocks the rest.
 - `POST /api/ai/summarize` — summarize a transcript by running
   `yt_summarize/summarize.py` as a subprocess against the configured endpoint.
   Body: `{transcript, model?, temperature?, system_prompt?}`. The system prompt

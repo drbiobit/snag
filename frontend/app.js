@@ -487,3 +487,18 @@ toggleThumbs();
 validateUrl();
 // Re-attach to a download that was running before a refresh / page change.
 restoreActiveJob();
+
+// Quick setup: click-to-copy on each code block in the setup card.
+document.querySelectorAll('#setup-section .copy-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+        const code = btn.parentElement.querySelector('pre');
+        if (!code) return;
+        try {
+            await navigator.clipboard.writeText(code.textContent);
+            const orig = btn.textContent;
+            btn.textContent = 'copied';
+            btn.classList.add('done');
+            setTimeout(() => { btn.textContent = orig; btn.classList.remove('done'); }, 1200);
+        } catch (e) { /* clipboard unavailable - ignore */ }
+    });
+});
