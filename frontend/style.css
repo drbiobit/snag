@@ -638,37 +638,6 @@ footer a:hover { color: var(--accent); }
 .changelog-list strong { color: var(--text); font-weight: 700; }
 .changelog-list code { color: var(--text); }
 
-/* Home page: quick setup collapsible blocks */
-.setup-block {
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    margin-bottom: 12px;
-    overflow: hidden;
-}
-.setup-block summary {
-    cursor: pointer;
-    padding: 12px 14px;
-    font-size: 14px;
-    font-weight: 700;
-    color: var(--text);
-    list-style: none;
-    user-select: none;
-}
-.setup-block summary::-webkit-details-marker { display: none; }
-.setup-block summary::before {
-    content: "▸";
-    display: inline-block;
-    margin-right: 8px;
-    color: var(--accent);
-    transition: transform 0.15s ease;
-}
-.setup-block[open] > summary::before { transform: rotate(90deg); }
-.setup-block summary .muted { font-weight: 400; }
-.setup-block > .copy,
-.setup-block > p { padding: 0 14px; }
-.setup-block > p { padding-bottom: 12px; }
-.setup-block > .copy { padding-bottom: 12px; }
-
 /* full-width block (e.g. a long request body shown on its own row) */
 .ep-block { margin-bottom: 18px; }
 

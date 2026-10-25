@@ -270,63 +270,6 @@
                 </div>
             </section>
 
-            <!-- Quick setup: how to get snag running (collapsible) -->
-            <section class="card" id="setup-section">
-                <div class="card-head">
-                    <h2>quick setup</h2>
-                    <span class="muted">how to get snag running</span>
-                </div>
-
-                <p class="lead">
-                    Snag is a single self-hosted app. Pick the method that fits
-                    your machine — Docker is the fastest.
-                </p>
-
-                <details class="setup-block" open>
-                    <summary>docker <span class="muted">(fastest, no prerequisites)</span></summary>
-                    <div class="copy">
-                        <button class="copy-btn" type="button" title="copy">copy</button>
-                        <pre class="code">docker run -d --name snag \
-  -p 8000:8000 \
-  -v ./downloads:/data \
-  ghcr.io/drbiobit/snag:latest</pre>
-                    </div>
-                    <p class="muted">Open <a href="http://localhost:8000">http://localhost:8000</a>. On first visit you'll create an account.</p>
-                </details>
-
-                <details class="setup-block">
-                    <summary>docker compose <span class="muted">(persistent, env vars)</span></summary>
-                    <div class="copy">
-                        <button class="copy-btn" type="button" title="copy">copy</button>
-                        <pre class="code">docker compose -f docker/docker-compose.yml up -d</pre>
-                    </div>
-                    <p class="muted">Uses named volumes for downloads and the auth database. Edit <code>docker/docker-compose.yml</code> to set <code>SNAG_USER</code> / <code>SNAG_PASSWORD</code>.</p>
-                </details>
-
-                <details class="setup-block">
-                    <summary>from source <span class="muted">(python + yt-dlp + ffmpeg)</span></summary>
-                    <div class="copy">
-                        <button class="copy-btn" type="button" title="copy">copy</button>
-                        <pre class="code">pip install -r requirements.txt
-python snag.py</pre>
-                    </div>
-                    <p class="muted">Requires Python 3.10+, <a href="https://github.com/yt-dlp/yt-dlp">yt-dlp</a> and <a href="https://ffmpeg.org/">ffmpeg</a> on your PATH. Opens on <a href="http://localhost:6909">http://localhost:6909</a>.</p>
-                </details>
-
-                <details class="setup-block">
-                    <summary>other methods</summary>
-                    <p class="muted">
-                        <strong>systemd</strong> — <code>sudo ./deploy-with-systemd.sh</code> (Linux VPS, recommended for servers)<br>
-                        <strong>PM2</strong> — <code>./deploy-with-pm2.sh</code> (servers without Docker/systemd)<br>
-                        <strong>Mac / Windows</strong> — <code>./deploy-for-win-mac.sh</code> (local use)
-                    </p>
-                </details>
-
-                <p class="muted note">
-                    Full step-by-step instructions (plus HTTPS and troubleshooting) live in the
-                    <a href="https://drbiobit.github.io/snag/deployment" target="_blank">Deployment guide</a>.
-                </p>
-            </section>
         </main>
 
         <footer>
