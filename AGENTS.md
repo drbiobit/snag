@@ -52,3 +52,8 @@ Rules for AI agents (and humans) working in this repository.
    on PATH).
 - After changes that touch `snag.py` or the frontend, verify the affected
   endpoints/pages still work before committing.
+- **Update the documentation when significant changes happen.** Docs live in
+  `docusaurus/docs/` (the docs site), `README.md`, and `AGENTS.md`. Whenever a
+  change alters behavior, endpoints, settings, deployment, or the UI, cross
+  reference the docs and update every page that describes what changed — do not
+  leave stale references behind.
