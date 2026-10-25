@@ -1043,7 +1043,17 @@ def ai_transcript():
 
     # Decide single video vs collection.
     collection = is_bulk(url)
-    timestamps = str(d.get('timestamps', get_meta('ai_timestamps', '1'))).strip() != '0'
+    # 'timestamps' arrives as a JSON boolean from the UI (or a '1'/'0'
+    # string from hand-crafted requests). Handle both - note that
+    # str(False) == 'False' would never match '0', so booleans need a
+    # dedicated branch.
+    ts = d.get('timestamps')
+    if ts is None:
+        ts = get_meta('ai_timestamps', '1')
+    if isinstance(ts, bool):
+        timestamps = ts
+    else:
+        timestamps = str(ts).strip().lower() not in ('0', 'false', 'no', 'off')
 
     langs_raw = (d.get('languages') or get_meta('ai_langs', 'en')).strip()
     langs = [x.strip() for x in re.split(r'[,\s]+', langs_raw) if x.strip()] or ['en']
