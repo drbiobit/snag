@@ -126,6 +126,11 @@
                         <input type="password" id="cfg-key" placeholder="blank = no auth" spellcheck="false" autocomplete="off">
                     </div>
                 </div>
+                <div class="field">
+                    <label for="cfg-system-prompt">system prompt <span class="muted">(what the ai is told to do)</span></label>
+                    <textarea id="cfg-system-prompt" rows="6" spellcheck="false"
+                        style="width:100%; background:var(--panel-2); border:1px solid var(--border); border-radius:6px; color:var(--text); font-family:var(--font); font-size:12px; padding:10px; resize:vertical;"></textarea>
+                </div>
                 <div class="actions">
                     <button class="btn btn-ghost" id="cfg-load-models">load models</button>
                     <button class="btn btn-primary" id="cfg-save">save &amp; continue</button>
@@ -199,6 +204,14 @@
                         <label for="temperature">temperature</label>
                         <input type="number" id="temperature" value="0.4" step="0.1" min="0" max="2">
                     </div>
+                </div>
+                <div class="field">
+                    <label for="system-prompt">system prompt <span class="muted">(what the ai is told to do · auto-saves)</span></label>
+                    <textarea id="system-prompt" rows="7" spellcheck="false"
+                        style="width:100%; background:var(--panel-2); border:1px solid var(--border); border-radius:6px; color:var(--text); font-family:var(--font); font-size:12px; padding:10px; resize:vertical;"></textarea>
+                    <p class="hint" style="font-size:11px; color:var(--faint); margin-top:5px;" id="sp-note">
+                        Saved automatically as you edit.
+                    </p>
                 </div>
                 <div class="actions">
                     <button class="btn btn-ghost" id="btn-refresh-models">refresh models</button>

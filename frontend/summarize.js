@@ -90,6 +90,7 @@ async function loadSettings() {
     settings = d.settings || {};
     if (settings.ai_langs && !$('yt-langs').value) $('yt-langs').value = settings.ai_langs;
     if (settings.ai_temperature) $('temperature').value = settings.ai_temperature;
+    $('system-prompt').value = settings.ai_system_prompt || '';
     // Timestamps default comes from settings unless the user already chose.
     if (settings.ai_timestamps !== undefined && !localStorage.getItem(LS_KEY)) {
         $('yt-timestamps').checked = settings.ai_timestamps !== '0';
@@ -102,6 +103,31 @@ function showConfig() {
     $('cfg-endpoint').value = settings.ai_endpoint || '';
     $('cfg-model').value = settings.ai_model || '';
     $('cfg-key').value = settings.ai_api_key || '';
+    $('cfg-system-prompt').value = settings.ai_system_prompt || '';
+}
+
+// The system prompt auto-saves to the DB a moment after the user stops
+// typing - no save button needed.
+let spTimer = null;
+function scheduleSavePrompt() {
+    clearTimeout(spTimer);
+    spTimer = setTimeout(savePrompt, 800);
+}
+
+async function savePrompt() {
+    const val = $('system-prompt').value;
+    try {
+        const r = await fetch('/api/ai/settings', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ai_system_prompt: val })
+        });
+        if (handle401(r)) return;
+        const d = await r.json();
+        if (d.success) {
+            settings.ai_system_prompt = val;
+            $('sp-note').textContent = 'Saved \u2713';
+        }
+    } catch (e) { /* offline - the text stays in the field */ }
 }
 
 async function saveConfig() {
@@ -111,6 +137,7 @@ async function saveConfig() {
         ai_endpoint: endpoint,
         ai_model: $('cfg-model').value.trim(),
         ai_api_key: $('cfg-key').value.trim(),
+        ai_system_prompt: $('cfg-system-prompt').value,
     };
     const r = await fetch('/api/ai/settings', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -205,9 +232,14 @@ async function summarize() {
     setStatus('summarize-status', 'Summarizing\u2026 this can take a while.', 'info', true);
     $('btn-summarize').disabled = true;
     try {
+        // The field is the source of truth - send it explicitly so the
+        // article always uses what the user sees on screen.
         const r = await fetch('/api/ai/summarize', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ transcript: lastTranscript, model, temperature })
+            body: JSON.stringify({
+                transcript: lastTranscript, model, temperature,
+                system_prompt: $('system-prompt').value
+            })
         });
         if (handle401(r)) return;
         const d = await r.json();
@@ -290,6 +322,9 @@ document.addEventListener('DOMContentLoaded', () => {
     $('btn-refresh-models').addEventListener('click', loadModels);
     $('cfg-save').addEventListener('click', saveConfig);
     $('cfg-load-models').addEventListener('click', loadModels);
+
+    // Auto-save the system prompt shortly after the user stops typing.
+    $('system-prompt').addEventListener('input', scheduleSavePrompt);
 
     // The count field is only meaningful for collections.
     const typeSel = $('yt-type');

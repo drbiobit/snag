@@ -14,6 +14,7 @@
     const endpointEl = $('ai-setup-endpoint');
     const modelEl = $('ai-setup-model');
     const keyEl = $('ai-setup-key');
+    const promptEl = $('ai-setup-prompt');
     const saveBtn = $('ai-setup-save');
     const skipBtn = $('ai-setup-skip');
     const closeBtn = $('ai-setup-close');
@@ -37,6 +38,7 @@
                     ai_endpoint: endpoint,
                     ai_model: modelEl.value.trim(),
                     ai_api_key: keyEl.value,
+                    ai_system_prompt: promptEl.value,
                 }),
             });
             const d = await r.json();
@@ -73,6 +75,7 @@
             const s = d.settings || {};
             if (s.ai_endpoint) endpointEl.value = s.ai_endpoint;
             if (s.ai_model) modelEl.value = s.ai_model;
+            if (s.ai_system_prompt) promptEl.value = s.ai_system_prompt;
             overlay.classList.add('open');
             endpointEl.focus();
         } catch (e) { /* not logged in or offline - do nothing */ }

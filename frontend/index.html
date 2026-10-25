@@ -305,6 +305,12 @@
                     <input type="password" id="ai-setup-key" placeholder="blank = none" autocomplete="off">
                 </div>
             </div>
+            <div class="field">
+                <label for="ai-setup-prompt">system prompt <span class="muted">(what the ai is told to do)</span></label>
+                <textarea id="ai-setup-prompt" rows="5" spellcheck="false"
+                    style="width:100%; background:var(--panel-2); border:1px solid var(--border); border-radius:6px; color:var(--text); font-family:var(--font); font-size:12px; padding:10px; resize:vertical;"></textarea>
+                <p class="hint">pre-filled with a sensible default - edit it to steer the article</p>
+            </div>
             <div class="modal-actions">
                 <button class="btn btn-ghost" id="ai-setup-skip">set up later</button>
                 <span class="spacer"></span>

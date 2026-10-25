@@ -5,8 +5,12 @@ Sends a content file + system prompt to a local OpenAI-compatible endpoint
 and saves the resulting Markdown article to disk.
 
 Usage:
-    python summarize.py content.md
-    python summarize.py transcript.md --system system_prompt.md --output article.md
+    python summarize.py transcript.md --system-prompt "..." \
+        --endpoint http://localhost:8080/v1 --model <id> --output article.md
+
+The system prompt is always passed as text via --system-prompt by the caller
+(the snag backend reads it from the database, where the user edits it in the
+UI). It is never read from a file.
 """
 
 import argparse
