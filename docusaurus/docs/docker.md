@@ -25,8 +25,10 @@ each layer does, in order:
    too (it's a CLI the app shells out to). The venv's `bin/` is put on
    `PATH`, so `python`, `gunicorn`, and `yt-dlp` all resolve without full
    paths.
-3. **The application code** — `snag.py`, `gunicorn.conf.py`, and the whole
-   `frontend/` folder are copied into `/app`.
+3. **The application code** — `snag.py`, `gunicorn.conf.py`,
+   `docker-entrypoint.sh`, the whole `frontend/` folder, and the
+   `yt_summarize/` pipeline scripts (the Summarize page shells out to
+   `yt-transcribe.py` and `summarize.py`) are copied into `/app`.
 4. **Runtime defaults** — `DOWNLOAD_DIR=/data`, `SNAG_CONFIG_DIR=/config`,
    `GUNICORN_WORKERS=1`, `PORT=8000`.
 5. **A non-root user** — a `snag` user is created and the process runs as it
