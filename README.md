@@ -170,7 +170,7 @@ Best for local use or when you don't want to touch any files.
 4. Enter a username and password, confirm the password, click **create**.
 5. You're logged in. From now on every visit requires sign-in.
 
-The credentials are stored in `data/users.json` (on the `/data` volume in
+The credentials are stored in `data/snag.db` (on the `/config` volume in
 Docker) and survive restarts and container rebuilds.
 
 ### Option B — set credentials via environment variables
@@ -202,9 +202,9 @@ in-browser account — the setup page is skipped entirely.
 
 ### Resetting credentials
 
-- **Option A:** delete `data/users.json` (or the `snag-data` volume) and
+- **Option A:** delete `data/snag.db` (or the `snag-config` volume) and
   reopen the app — the "create account" page appears again.
-- **Option B:** unset the env vars, delete `data/users.json`, and restart.
+- **Option B:** unset the env vars, delete `data/snag.db`, and restart.
 
 ### Security notes
 
@@ -212,7 +212,7 @@ in-browser account — the setup page is skipped entirely.
   per-user salt). The plaintext is never stored.
 - Sessions use signed Flask cookies (`HttpOnly`, `SameSite=Lax`, 7-day
   lifetime). The signing key is auto-generated on first start and persisted
-  to `data/secret` so sessions survive restarts.
+  to `data/snag.db` so sessions survive restarts.
 - `/health` is always open (no auth) so container healthchecks work.
 - See `.env.example` for all available variables, and [SECURITY.md](SECURITY.md)
   for how to report a vulnerability.
@@ -239,19 +239,26 @@ downloads/                  # Output files
 
 | Endpoint | Method | Description |
 |---|---|---|
+| `/api/auth-status` | GET | tells the login page to show setup or sign-in |
 | `/api/setup` | POST | first-run: create the initial account |
 | `/api/login` | POST | `{username, password}` → start session |
 | `/api/logout` | POST | end the current session |
+| `/api/auth/clear` | POST | delete all stored credentials (resets to first-run) |
 | `/api/validate` | POST | `{url}` → validate YouTube URL + detect bulk |
+| `/api/preview` | POST | `{url}` → title, item count, resolutions & codecs |
 | `/api/download` | POST | start a download → `{job_id}` |
 | `/api/status/<job_id>` | GET | job progress/status |
 | `/api/cancel/<job_id>` | POST | cancel a running job |
 | `/api/downloads` | GET | list downloaded files |
+| `/api/delete/<name>` | POST | delete a file from the downloads folder |
+| `/api/history` | GET | download history (most recent first) |
+| `/api/history/clear` | POST | clear the download history |
 | `/api/ai/settings` | GET/POST | read/update the AI endpoint, model, key, prompt & options |
 | `/api/ai/setup-done` | POST | mark the one-time AI setup as complete |
 | `/api/ai/models` | GET | list models from the configured endpoint |
 | `/api/ai/transcript` | POST | `{url, count?, timestamps?, languages?}` → transcript Markdown (video/playlist/channel) |
 | `/api/ai/summarize` | POST | `{transcript, temperature?, timeout?}` → AI-written article Markdown |
+| `/health` | GET | liveness probe (always open, no auth) |
 
 ### Download request body
 
