@@ -33,9 +33,15 @@ DEFAULT_TIMEOUT = 300  # 5 minutes
 
 def fetch_models(endpoint: str, timeout: int = 15):
     """Fetch available model IDs from an OpenAI-compatible endpoint."""
-    url = endpoint.rstrip("/") + "/models"
+    base = endpoint.rstrip("/")
+    url = base + "/models"
     try:
         r = requests.get(url, timeout=timeout)
+        # Same /v1 quirk as chat completions: retry with the prefix.
+        if r.status_code == 404 and not base.endswith("/v1"):
+            url = base + "/v1/models"
+            print(f"⚠️  404 from {base}/models - retrying with /v1 prefix: {url}")
+            r = requests.get(url, timeout=timeout)
         r.raise_for_status()
         data = r.json()
         models = [m.get("id") for m in data.get("data", []) if m.get("id")]
@@ -74,7 +80,8 @@ def choose_model_interactively(models):
 def chat_completion(endpoint, model, system_prompt, user_content,
                     timeout=300, temperature=0.4, api_key=""):
     """Send a chat completion request to the endpoint."""
-    url = endpoint.rstrip("/") + "/chat/completions"
+    base = endpoint.rstrip("/")
+    url = base + "/chat/completions"
     payload = {
         "model": model,
         "messages": [
@@ -95,6 +102,13 @@ def chat_completion(endpoint, model, system_prompt, user_content,
     start = time.time()
     try:
         r = requests.post(url, json=payload, headers=headers, timeout=timeout)
+        # Many local servers (Ollama, LM Studio, vLLM, ...) serve the
+        # OpenAI API under a /v1 prefix. If the saved endpoint is missing
+        # it, the first request 404s - retry once with the prefix.
+        if r.status_code == 404 and not base.endswith("/v1"):
+            alt = base + "/v1/chat/completions"
+            print(f"⚠️  404 from {url} - retrying with /v1 prefix: {alt}")
+            r = requests.post(alt, json=payload, headers=headers, timeout=timeout)
         elapsed = time.time() - start
         r.raise_for_status()
         data = r.json()
@@ -115,6 +129,12 @@ def chat_completion(endpoint, model, system_prompt, user_content,
         sys.exit(1)
     except requests.exceptions.HTTPError as e:
         print(f"❌ HTTP error {r.status_code}: {r.text[:500]}")
+        if r.status_code == 404:
+            print("   Common causes:")
+            print(f"   - the model \"{model}\" is not available on that server")
+            print("     (check the model name, or that it is pulled/loaded)")
+            print("   - the endpoint should include the /v1 prefix, e.g.")
+            print(f"     {base}/v1   instead of   {base}")
         sys.exit(1)
     except (KeyError, json.JSONDecodeError) as e:
         print(f"❌ Bad response format: {e}")

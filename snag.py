@@ -993,8 +993,14 @@ def ai_models():
         return jsonify(success=False, error='No endpoint configured. Set it in Settings.', models=[])
     api_key = get_meta('ai_api_key', '')
     try:
-        r = requests.get(endpoint.rstrip('/') + '/models',
-                         headers=_ai_headers(api_key), timeout=15)
+        base = endpoint.rstrip('/')
+        r = requests.get(base + '/models', headers=_ai_headers(api_key), timeout=15)
+        # Local servers often serve the OpenAI API under /v1 - if the
+        # endpoint is missing the prefix the first request 404s, so retry
+        # once with it.
+        if r.status_code == 404 and not base.endswith('/v1'):
+            r = requests.get(base + '/v1/models',
+                             headers=_ai_headers(api_key), timeout=15)
         r.raise_for_status()
         data = r.json()
         models = sorted({m.get('id') for m in data.get('data', []) if m.get('id')})
