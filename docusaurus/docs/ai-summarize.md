@@ -27,10 +27,11 @@ settings you save.
 ## First run
 
 After you create your account, the **home page** shows a one-time, **optional**
-popup asking for your AI endpoint, model, and (optionally) an API key. It is
-**skippable** — click **set up later** and the app is fully usable without AI.
-The decision is remembered, so it never appears again; you can configure AI any
-time from **Settings → AI / summarize**.
+popup asking for your AI endpoint, model, (optionally) an API key, and the
+**system prompt** (pre-filled with the default). It is **skippable** — click
+**set up later** and the app is fully usable without AI. The decision is
+remembered, so it never appears again; you can configure AI any time from
+**Settings → AI / summarize**.
 
 ## How it works
 
@@ -52,9 +53,16 @@ expects.
 
 The system prompt is **stored in the database**, not in a file. On first start
 the app seeds it with a sensible default (title, summary, key points, a
-sectioned breakdown, and a takeaway). You can edit it any time from
-**Settings → AI / summarize → system prompt** to steer the article's structure
-and tone.
+sectioned breakdown, and a takeaway). You can edit it in three places, all of
+which read and write the same database value:
+
+- **Summarize page (step 3)** — a **system prompt** editor right where you
+  summarize. It **auto-saves** to the database a moment after you stop typing
+  (no save button), and every summarize request sends exactly what is on
+  screen.
+- **First-run setup** — the one-time popup (and the Summarize page's config
+  card) ask for it alongside the endpoint, pre-filled with the default.
+- **Settings → AI / summarize → system prompt** — the general settings field.
 
 ### Playlists and channels
 
@@ -100,13 +108,20 @@ Any server that speaks the OpenAI chat-completions API works, for example:
 Set the endpoint and model, then click **load models** to confirm the server
 is reachable and to see what's available.
 
+> **Missing `/v1`?** Many local servers serve the OpenAI API under a `/v1`
+> prefix. If your endpoint 404s without it, Snag automatically **retries once
+> with the prefix** on both the model list and the summarize call — so
+> `http://localhost:8080` works even though `http://localhost:8080/v1` is the
+> "proper" form.
+
 ## Using the page
 
 1. Open the **Summarize** page (document-with-sparkle icon).
 2. Paste a YouTube URL (video, playlist, or channel) and set the options:
    type, how many videos, languages, and whether to include timestamps.
 3. Click **get transcript**. Review it, or click **download transcript .md**.
-4. Pick a model and click **summarize**.
+4. Pick a model, tweak the temperature, and — if you want — edit the
+   **system prompt** (it auto-saves). Click **summarize**.
 5. The article renders in the app. Use **copy markdown** or **download .md**
    to take it with you.
 
@@ -134,6 +149,10 @@ downloads folder and do not appear on the Downloads page.
 - **"No model selected"** — pick a model on the page or set `ai_model`.
 - **Model list is empty** — the endpoint is unreachable or not an
   OpenAI-compatible `/models` endpoint. Check the URL and that the server is up.
+- **404 from the endpoint** — the model name is not available on that server
+  (check the exact model id and that it is pulled/loaded). Snag already
+  retries once with a `/v1` prefix, so a 404 that survives that is almost
+  always a model-name problem, not a URL problem.
 - **Timeout** — large transcripts (especially whole channels) on a slow local
   model can take a while; raise the timeout in Settings.
 - **Transcript not found** — the video has no captions in the requested

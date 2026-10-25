@@ -249,7 +249,7 @@ reference, including the authentication variables, is in the
 | `DOWNLOAD_DIR` | `./downloads` | Where finished files are saved. |
 | `GUNICORN_WORKERS` | `1` | Gunicorn worker count. **Must stay 1** — job state is in process memory, so multiple workers break status/cancel polling. |
 | `SNAG_USER` / `SNAG_PASSWORD` | *(unset)* | Set both to enable env-based login. |
-| `SNAG_SECRET` | *(auto)* | Session signing key; auto-generated and stored in `data/secret` if unset. |
+| `SNAG_SECRET` | *(auto)* | Session signing key; auto-generated and stored in `data/snag.db` if unset. |
 
 ---
 
@@ -290,8 +290,8 @@ liveness checks.
 - **Status polling returns 404** — you're almost certainly running more than
   one Gunicorn worker. Set `GUNICORN_WORKERS=1` and restart.
 - **I'm logged out after a restart** — the session signing key was regenerated
-  (the `data/secret` file was lost). Set `SNAG_SECRET` explicitly if you want
-  sessions to survive a data volume wipe.
+  (the `data/snag.db` database was lost). Set `SNAG_SECRET` explicitly if you
+  want sessions to survive a data volume wipe.
 - **Port already in use** — change `PORT` and restart.
 
 > **Note on storage:** any platform with an ephemeral filesystem (some PaaS

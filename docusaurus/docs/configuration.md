@@ -113,7 +113,7 @@ account. Open **Settings → AI / summarize** to edit them.
 | Timeout | `ai_timeout` | `300` | Request timeout in seconds for the summarize call. |
 | Transcript languages | `ai_langs` | `en` | Priority-ordered language codes for transcript fetch (comma- or space-separated). |
 | Include timestamps | `ai_timestamps` | `1` | Default for the transcript's timestamped section (`1` = on, `0` = off). |
-| System prompt | `ai_system_prompt` | *(seeded)* | The instructions given to the model. Seeded with a default on first start; fully editable. |
+| System prompt | `ai_system_prompt` | *(seeded)* | The instructions given to the model. Seeded with a default on first start; editable from the Summarize page (auto-saves as you type), the first-run setup, or this settings page. |
 | Setup done | `ai_setup_done` | `0` | Whether the one-time AI setup prompt has been handled (`1` = done/skipped). Managed automatically. |
 
 > **Only local AI is encouraged.** You can still point the endpoint at an

@@ -118,9 +118,11 @@ There are no frameworks doing this for us, so it's all explicit:
 - **`app`** — the Flask instance. Note `static_folder` points at `frontend/`
   and `static_url_path` is `/static`, so the browser can grab
   `/static/app.js`, `/static/style.css`, etc.
-- **`MAX_CONCURRENT = 2`** — at most two downloads run at once. Anything
-  beyond that gets a `429 Too Many Requests`. This is a soft limit to keep a
-  single user from forking off dozens of `yt-dlp` processes.
+- **`MAX_CONCURRENT = 2`** — at most two **active** downloads run at once.
+  Finished jobs (those with a `finished_at`) do not count against the limit,
+  so completed downloads never block new ones; only genuinely running jobs do.
+  Anything beyond two active gets a `429 Too Many Requests`. This is a soft
+  limit to keep a single user from forking off dozens of `yt-dlp` processes.
 - **`jobs`** — an in-memory dictionary mapping `job_id → job info`. This is
   the *only* server-side state. It's deliberately not persisted: a download
   is either on disk (done) or it isn't (lost on restart), and there's no
