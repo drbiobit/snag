@@ -10,17 +10,15 @@
  */
 
 // The themes are defined in style.css via [data-theme="..."] selectors.
-// "black" (the near-black "ink" theme) needs no attribute, so it maps to the
-// :root defaults. "light" is the default for new users (the polished
-// showcase); "charcoal" is a warmer mid-dark.
+// "black" (pure black) is the default and needs no attribute, so it maps to
+// the :root defaults. "light" is the warm-paper variant.
 (function () {
     var KEY = 'snag-theme';
-    var DEFAULT = 'light';
 
     // Apply a theme by setting the data-theme attribute on <html>.
     function apply(name) {
         var root = document.documentElement;
-        name = name || DEFAULT;
+        name = name || 'black';
         if (name !== 'black') {
             root.setAttribute('data-theme', name);
         } else {
@@ -28,7 +26,7 @@
         }
     }
 
-    // Apply whatever the user saved (or the default light theme).
+    // Apply whatever the user saved (or the default black theme).
     try {
         apply(localStorage.getItem(KEY));
     } catch (e) { /* localStorage unavailable - fall back to default */ }
@@ -41,6 +39,6 @@
 
     // Public API: read the current theme name.
     window.snagGetTheme = function () {
-        try { return localStorage.getItem(KEY) || DEFAULT; } catch (e) { return DEFAULT; }
+        try { return localStorage.getItem(KEY) || 'black'; } catch (e) { return 'black'; }
     };
 })();
