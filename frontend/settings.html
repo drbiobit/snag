@@ -6,252 +6,264 @@
     <title>Snag · settings</title>
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
     <link rel="stylesheet" href="/static/style.css">
-    <!-- Apply the saved theme before paint to avoid a flash of the default. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+    <!-- Apply the saved theme before paint to avoid a flash. -->
     <script src="/static/theme.js"></script>
 </head>
 <body>
-    <div class="layout">
-
-        <!-- Top header: app name + nav (nav lives here on every size) -->
-        <header class="topbar">
+    <div class="app">
+        <aside class="sidebar">
             <a class="brand" href="/">
-                <span>snag<span class="caret">_</span></span>
+                <span class="logo">
+                    <svg viewBox="0 0 32 32" fill="none" aria-hidden="true">
+                        <path d="M16 4 v13 a7 7 0 0 0 14 0 v-2" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </span>
+                <span class="name">Snag<span class="dot">.</span></span>
             </a>
-            <nav class="side-nav" aria-label="main">
-                <a href="/" data-label="app" title="app" aria-label="app">
+            <nav class="nav" aria-label="main">
+                <a href="/">
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5M5 9.5V20h14V9.5M9 20v-6h6v6"/></svg>
+                    <span class="label">App</span>
                 </a>
-                <a href="/summarize" data-label="summarize" title="summarize" aria-label="summarize">
+                <a href="/summarize">
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/><path d="M9 12h6M9 15h6M9 18h4"/><path d="M18.5 13.5l.6 1.4 1.4.6-1.4.6-.6 1.4-.6-1.4-1.4-.6 1.4-.6z"/></svg>
+                    <span class="label">Summarize</span>
                 </a>
-                <a href="/downloads" data-label="downloads" title="downloads" aria-label="downloads">
+                <a href="/downloads">
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 11l5 5 5-5M4 20h16"/></svg>
+                    <span class="label">Downloads</span>
                 </a>
-                <a href="/history" data-label="history" title="history" aria-label="history">
+                <a href="/history">
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8v4l3 3M3.05 11a9 9 0 1 1 .5 4M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.75L3 8"/></svg>
+                    <span class="label">History</span>
                 </a>
-                <a href="/docs" data-label="docs" title="docs" aria-label="docs">
+                <a href="/docs">
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h11l3 3v13H5zM8 9h8M8 13h8M8 17h5"/></svg>
+                    <span class="label">Docs</span>
                 </a>
-                <a href="/settings" class="active" data-label="settings" title="settings" aria-label="settings" aria-current="page">
+                <a href="/settings" class="active" aria-current="page">
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                    <span class="label">Settings</span>
                 </a>
             </nav>
-        </header>
+            <div class="foot">
+                Powered by <a href="https://github.com/yt-dlp/yt-dlp" target="_blank">yt-dlp</a>
+            </div>
+        </aside>
 
-        <!-- Body: content only (nav moved to the top header) -->
-        <div class="body-row">
-
-        <!-- Main content column -->
-        <div class="content">
-
-        <main>
-            <section class="card">
-                <div class="card-head">
-                    <h2>Settings</h2>
-                    <span class="muted">appearance</span>
-                </div>
-
-                <!-- Theme picker: saved to localStorage, applied on every page -->
-                <div class="field">
-                    <label>theme</label>
-                    <div class="swatches" id="theme-swatches">
-                        <button class="swatch" data-theme="black" title="Black">
-                            <span class="swatch-chip" style="background:#000000; border:1px solid #2a2a2a;"></span>
-                            <span class="swatch-name">black</span>
-                        </button>
-                        <button class="swatch" data-theme="charcoal" title="Charcoal">
-                            <span class="swatch-chip" style="background:#1a1a1a;"></span>
-                            <span class="swatch-name">charcoal</span>
-                        </button>
-                        <button class="swatch" data-theme="light" title="Light">
-                            <span class="swatch-chip" style="background:#f4f4f4;"></span>
-                            <span class="swatch-name">light</span>
-                        </button>
+        <div class="main">
+            <div class="main-inner">
+                <div class="page-head">
+                    <div class="titles">
+                        <h1>Settings</h1>
+                        <p class="sub">Tune Snag to how you work.</p>
                     </div>
                 </div>
 
-                <p class="muted note">
-                    Your theme is stored in this browser and applied across the
-                    app, docs and settings pages. The font is Ubuntu Mono.
-                </p>
-            </section>
+                <main>
+                    <!-- Appearance: theme picker (localStorage, applied everywhere) -->
+                    <section class="card">
+                        <div class="card-head">
+                            <h2>Appearance</h2>
+                            <span class="muted">theme</span>
+                        </div>
+                        <div class="field">
+                            <label>Theme</label>
+                            <div class="swatches" id="theme-swatches">
+                                <button class="swatch" data-theme="black" title="Ink">
+                                    <span class="swatch-chip" style="background:#121110; border:1px solid #3b382f;"></span>
+                                    <span class="swatch-name">Ink</span>
+                                </button>
+                                <button class="swatch" data-theme="charcoal" title="Charcoal">
+                                    <span class="swatch-chip" style="background:#201d18;"></span>
+                                    <span class="swatch-name">Charcoal</span>
+                                </button>
+                                <button class="swatch" data-theme="light" title="Light">
+                                    <span class="swatch-chip" style="background:#f1eee6; border:1px solid #c6c0ad;"></span>
+                                    <span class="swatch-name">Light</span>
+                                </button>
+                            </div>
+                        </div>
+                        <p class="muted note">
+                            Your theme is stored in this browser and applied across the
+                            app, docs, and settings pages.
+                        </p>
+                    </section>
 
-            <!-- Default download options: saved to localStorage, pre-fill the form -->
-            <section class="card">
-                <div class="card-head">
-                    <h2>Default download options</h2>
-                    <span class="muted">pre-filled on the app page</span>
-                </div>
+                    <!-- Default download options: saved to localStorage, pre-fill the form -->
+                    <section class="card">
+                        <div class="card-head">
+                            <h2>Default download options</h2>
+                            <span class="muted">pre-filled on the app page</span>
+                        </div>
 
-                <div class="row">
-                    <div class="field">
-                        <label for="def-format">quality</label>
-                        <select id="def-format">
-                            <option value="best">best</option>
-                            <option value="1080">1080p</option>
-                            <option value="720">720p</option>
-                            <option value="480">480p</option>
-                            <option value="audio">audio</option>
-                            <option value="video">video</option>
-                        </select>
-                    </div>
-                    <div class="field">
-                        <label for="def-video-format">video format</label>
-                        <select id="def-video-format">
-                            <option value="mp4">mp4</option>
-                            <option value="webm">webm</option>
-                            <option value="mkv">mkv</option>
-                            <option value="mov">mov</option>
-                        </select>
-                    </div>
-                </div>
+                        <div class="row">
+                            <div class="field">
+                                <label for="def-format">Quality</label>
+                                <select id="def-format">
+                                    <option value="best">Best</option>
+                                    <option value="1080">1080p</option>
+                                    <option value="720">720p</option>
+                                    <option value="480">480p</option>
+                                    <option value="audio">Audio</option>
+                                    <option value="video">Video only</option>
+                                </select>
+                            </div>
+                            <div class="field">
+                                <label for="def-video-format">Video format</label>
+                                <select id="def-video-format">
+                                    <option value="mp4">MP4</option>
+                                    <option value="webm">WebM</option>
+                                    <option value="mkv">MKV</option>
+                                    <option value="mov">MOV</option>
+                                </select>
+                            </div>
+                        </div>
 
-                <div class="row">
-                    <div class="field">
-                        <label for="def-audio-format">audio format</label>
-                        <select id="def-audio-format">
-                            <option value="mp3">mp3</option>
-                            <option value="m4a">m4a</option>
-                            <option value="wav">wav</option>
-                            <option value="ogg">ogg</option>
-                            <option value="flac">flac</option>
-                        </select>
-                    </div>
-                    <div class="field">
-                        <label for="def-audio-quality">audio bitrate</label>
-                        <select id="def-audio-quality">
-                            <option value="0">highest (vbr)</option>
-                            <option value="1">128 kbps</option>
-                            <option value="2">192 kbps</option>
-                            <option value="3">256 kbps</option>
-                            <option value="4">320 kbps</option>
-                        </select>
-                    </div>
-                </div>
+                        <div class="row">
+                            <div class="field">
+                                <label for="def-audio-format">Audio format</label>
+                                <select id="def-audio-format">
+                                    <option value="mp3">MP3</option>
+                                    <option value="m4a">M4A</option>
+                                    <option value="wav">WAV</option>
+                                    <option value="ogg">OGG</option>
+                                    <option value="flac">FLAC</option>
+                                </select>
+                            </div>
+                            <div class="field">
+                                <label for="def-audio-quality">Audio bitrate</label>
+                                <select id="def-audio-quality">
+                                    <option value="0">Highest (VBR)</option>
+                                    <option value="1">128 kbps</option>
+                                    <option value="2">192 kbps</option>
+                                    <option value="3">256 kbps</option>
+                                    <option value="4">320 kbps</option>
+                                </select>
+                            </div>
+                        </div>
 
-                <div class="row">
-                    <div class="field">
-                        <label for="def-fragments">fragment threads</label>
-                        <select id="def-fragments">
-                            <option value="0">off</option>
-                            <option value="2">2</option>
-                            <option value="4">4</option>
-                            <option value="8">8</option>
-                            <option value="16">16</option>
-                        </select>
-                    </div>
-                    <div class="field">
-                        <label for="def-playlist-index">playlist index</label>
-                        <select id="def-playlist-index">
-                            <option value="">separate files</option>
-                            <option value="m3u">m3u playlist</option>
-                            <option value="mkv">merge to mkv</option>
-                            <option value="mp4">merge to mp4</option>
-                        </select>
-                    </div>
-                </div>
+                        <div class="row">
+                            <div class="field">
+                                <label for="def-fragments">Fragment threads</label>
+                                <select id="def-fragments">
+                                    <option value="0">Off</option>
+                                    <option value="2">2</option>
+                                    <option value="4">4</option>
+                                    <option value="8">8</option>
+                                    <option value="16">16</option>
+                                </select>
+                            </div>
+                            <div class="field">
+                                <label for="def-playlist-index">Playlist index</label>
+                                <select id="def-playlist-index">
+                                    <option value="">Separate files</option>
+                                    <option value="m3u">M3U playlist</option>
+                                    <option value="mkv">Merge to MKV</option>
+                                    <option value="mp4">Merge to MP4</option>
+                                </select>
+                            </div>
+                        </div>
 
-                <div class="row">
-                    <label class="check">
-                        <input type="checkbox" id="def-audio-only">
-                        <span>audio only</span>
-                    </label>
-                    <label class="check">
-                        <input type="checkbox" id="def-resume" checked>
-                        <span>resume &amp; skip existing</span>
-                    </label>
-                    <label class="check">
-                        <input type="checkbox" id="def-metadata">
-                        <span>embed metadata</span>
-                    </label>
-                </div>
+                        <div class="row" style="grid-template-columns: repeat(3, 1fr);">
+                            <label class="check">
+                                <input type="checkbox" id="def-audio-only">
+                                <span>Audio only</span>
+                            </label>
+                            <label class="check">
+                                <input type="checkbox" id="def-resume" checked>
+                                <span>Resume &amp; skip</span>
+                            </label>
+                            <label class="check">
+                                <input type="checkbox" id="def-metadata">
+                                <span>Embed metadata</span>
+                            </label>
+                        </div>
 
-                <div class="field">
-                    <label for="def-output-template">output template <span class="muted">(single only)</span></label>
-                    <input type="text" id="def-output-template" placeholder="%(title)s.%(ext)s" spellcheck="false" autocomplete="off">
-                </div>
+                        <div class="field">
+                            <label for="def-output-template">Output template <span class="muted">(single only)</span></label>
+                            <input type="text" id="def-output-template" placeholder="%(title)s.%(ext)s" spellcheck="false" autocomplete="off">
+                        </div>
 
-                <div class="actions">
-                    <button class="btn btn-primary" id="save-defaults">save defaults</button>
-                    <button class="btn btn-ghost" id="reset-defaults">reset</button>
-                </div>
-                <p class="muted note" id="save-note"></p>
-            </section>
+                        <div class="actions">
+                            <button class="btn btn-primary" id="save-defaults" style="flex:0 0 auto;">Save defaults</button>
+                            <button class="btn btn-ghost" id="reset-defaults" style="flex:0 0 auto;">Reset</button>
+                        </div>
+                        <p class="muted note" id="save-note"></p>
+                    </section>
 
-            <!-- AI / summarize settings: saved to the backend (meta table) -->
-            <section class="card">
-                <div class="card-head">
-                    <h2>AI / summarize</h2>
-                    <span class="muted">youtube → transcript → ai article</span>
-                </div>
+                    <!-- AI / summarize settings: saved to the backend (meta table) -->
+                    <section class="card">
+                        <div class="card-head">
+                            <h2>AI / Summarize</h2>
+                            <span class="muted">youtube → transcript → article</span>
+                        </div>
 
-                <p class="muted" style="margin-bottom:16px;">
-                    Used by the <a href="/summarize" style="color:var(--accent);">summarize</a> page.
-                    Point this at any OpenAI-compatible endpoint. Local AI is encouraged;
-                    a cloud endpoint works too.
-                </p>
+                        <p class="muted" style="margin-bottom:16px;">
+                            Used by the <a href="/summarize">Summarize</a> page.
+                            Point this at any OpenAI-compatible endpoint. Local AI is
+                            encouraged; a cloud endpoint works too.
+                        </p>
 
-                <div class="field">
-                    <label for="ai-endpoint">endpoint</label>
-                    <input type="text" id="ai-endpoint" placeholder="http://localhost:8080/v1" spellcheck="false" autocomplete="off">
-                </div>
+                        <div class="field">
+                            <label for="ai-endpoint">Endpoint</label>
+                            <input type="text" id="ai-endpoint" placeholder="http://localhost:8080/v1" spellcheck="false" autocomplete="off">
+                        </div>
 
-                <div class="row">
-                    <div class="field">
-                        <label for="ai-model">model</label>
-                        <input type="text" id="ai-model" placeholder="e.g. llama-3-70b" spellcheck="false" autocomplete="off">
-                    </div>
-                    <div class="field">
-                        <label for="ai-key">api key <span class="muted">(optional)</span></label>
-                        <input type="password" id="ai-key" placeholder="blank = no auth" spellcheck="false" autocomplete="off">
-                    </div>
-                </div>
+                        <div class="row">
+                            <div class="field">
+                                <label for="ai-model">Model</label>
+                                <input type="text" id="ai-model" placeholder="e.g. llama-3-70b" spellcheck="false" autocomplete="off">
+                            </div>
+                            <div class="field">
+                                <label for="ai-key">API key <span class="muted">(optional)</span></label>
+                                <input type="password" id="ai-key" placeholder="blank = no auth" spellcheck="false" autocomplete="off">
+                            </div>
+                        </div>
 
-                <div class="row">
-                    <div class="field">
-                        <label for="ai-temperature">temperature</label>
-                        <input type="number" id="ai-temperature" value="0.4" step="0.1" min="0" max="2">
-                    </div>
-                    <div class="field">
-                        <label for="ai-timeout">timeout <span class="muted">(seconds)</span></label>
-                        <input type="number" id="ai-timeout" value="300" step="10" min="10">
-                    </div>
-                </div>
+                        <div class="row">
+                            <div class="field">
+                                <label for="ai-temperature">Temperature</label>
+                                <input type="number" id="ai-temperature" value="0.4" step="0.1" min="0" max="2">
+                            </div>
+                            <div class="field">
+                                <label for="ai-timeout">Timeout <span class="muted">(seconds)</span></label>
+                                <input type="number" id="ai-timeout" value="300" step="10" min="10">
+                            </div>
+                        </div>
 
-                <div class="field">
-                    <label for="ai-langs">transcript languages <span class="muted">(priority order)</span></label>
-                    <input type="text" id="ai-langs" value="en" spellcheck="false" autocomplete="off">
-                </div>
+                        <div class="field">
+                            <label for="ai-langs">Transcript languages <span class="muted">(priority order)</span></label>
+                            <input type="text" id="ai-langs" value="en" spellcheck="false" autocomplete="off">
+                        </div>
 
-                <label class="check-line" for="ai-timestamps">
-                    <input type="checkbox" id="ai-timestamps" checked> include timestamps in transcripts by default
-                </label>
+                        <label class="check-line" for="ai-timestamps">
+                            <input type="checkbox" id="ai-timestamps" checked> Include timestamps in transcripts by default
+                        </label>
 
-                <div class="field">
-                    <label for="ai-system-prompt">system prompt <span class="muted">(what the ai is told to do)</span></label>
-                    <textarea id="ai-system-prompt" rows="8" spellcheck="false"
-                        style="width:100%; background:var(--panel-2); border:1px solid var(--border); border-radius:6px; color:var(--text); font-family:var(--font); font-size:12px; padding:10px; resize:vertical;"></textarea>
-                    <p class="hint" style="font-size:11px; color:var(--faint); margin-top:5px;">
-                        Seeded with a sensible default on first run. Change it to steer the article's structure and tone.
-                    </p>
-                </div>
+                        <div class="field">
+                            <label for="ai-system-prompt">System prompt <span class="muted">(what the AI is told to do)</span></label>
+                            <textarea id="ai-system-prompt" class="textarea" rows="8" spellcheck="false"></textarea>
+                            <p class="hint">Seeded with a sensible default on first run. Change it to steer the article's structure and tone.</p>
+                        </div>
 
-                <div class="actions">
-                    <button class="btn btn-ghost" id="ai-load-models">load models</button>
-                    <button class="btn btn-primary" id="ai-save">save ai settings</button>
-                </div>
-                <p class="muted note" id="ai-note"></p>
-            </section>
-        </main>
+                        <div class="actions">
+                            <button class="btn btn-ghost" id="ai-load-models" style="flex:0 0 auto;">Load models</button>
+                            <button class="btn btn-primary" id="ai-save" style="flex:0 0 auto;">Save AI settings</button>
+                        </div>
+                        <p class="muted note" id="ai-note"></p>
+                    </section>
+                </main>
 
-        <footer>
-            <span>snag — powered by <a href="https://github.com/yt-dlp/yt-dlp" target="_blank">yt-dlp</a></span>
-        </footer>
-
-        </div><!-- /.content -->
-        </div><!-- /.body-row -->
-    </div><!-- /.layout -->
+                <footer>
+                    <span>Snag — powered by <a href="https://github.com/yt-dlp/yt-dlp" target="_blank">yt-dlp</a></span>
+                </footer>
+            </div>
+        </div>
+    </div>
     <script src="/static/settings.js"></script>
 </body>
 </html>

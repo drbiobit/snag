@@ -6,103 +6,115 @@
     <title>Snag · API docs</title>
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
     <link rel="stylesheet" href="/static/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
     <!-- Apply the saved theme before paint to avoid a flash of the default. -->
     <script src="/static/theme.js"></script>
 </head>
 <body>
-    <div class="layout">
-
-        <!-- Top header: app name + nav (nav lives here on every size) -->
-        <header class="topbar">
+    <div class="app">
+        <aside class="sidebar">
             <a class="brand" href="/">
-                <span>snag<span class="caret">_</span></span>
+                <span class="logo">
+                    <svg viewBox="0 0 32 32" fill="none" aria-hidden="true">
+                        <path d="M16 4 v13 a7 7 0 0 0 14 0 v-2" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </span>
+                <span class="name">Snag<span class="dot">.</span></span>
             </a>
-            <nav class="side-nav" aria-label="main">
-                <a href="/" data-label="app" title="app" aria-label="app">
+            <nav class="nav" aria-label="main">
+                <a href="/">
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5M5 9.5V20h14V9.5M9 20v-6h6v6"/></svg>
+                    <span class="label">App</span>
                 </a>
-                <a href="/summarize" data-label="summarize" title="summarize" aria-label="summarize">
+                <a href="/summarize">
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/><path d="M9 12h6M9 15h6M9 18h4"/><path d="M18.5 13.5l.6 1.4 1.4.6-1.4.6-.6 1.4-.6-1.4-1.4-.6 1.4-.6z"/></svg>
+                    <span class="label">Summarize</span>
                 </a>
-                <a href="/downloads" data-label="downloads" title="downloads" aria-label="downloads">
+                <a href="/downloads">
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 11l5 5 5-5M4 20h16"/></svg>
+                    <span class="label">Downloads</span>
                 </a>
-                <a href="/history" data-label="history" title="history" aria-label="history">
+                <a href="/history">
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8v4l3 3M3.05 11a9 9 0 1 1 .5 4M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.75L3 8"/></svg>
+                    <span class="label">History</span>
                 </a>
-                <a href="/docs" class="active" data-label="docs" title="docs" aria-label="docs" aria-current="page">
+                <a href="/docs" class="active" aria-current="page">
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h11l3 3v13H5zM8 9h8M8 13h8M8 17h5"/></svg>
+                    <span class="label">Docs</span>
                 </a>
-                <a href="/settings" data-label="settings" title="settings" aria-label="settings">
+                <a href="/settings">
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                    <span class="label">Settings</span>
                 </a>
             </nav>
-        </header>
+            <div class="foot">
+                Powered by <a href="https://github.com/yt-dlp/yt-dlp" target="_blank">yt-dlp</a>
+            </div>
+        </aside>
 
-        <!-- Body: content only (nav moved to the top header) -->
-        <div class="body-row">
-
-        <!-- Main content column -->
-        <div class="content">
-
-        <main class="docs">
-            <!-- Page title -->
-            <header class="docs-head">
-                <h1>REST API</h1>
-                <p class="muted">base url: <span id="base-url"></span></p>
-            </header>
-
-            <p class="lead">
-                Snag exposes a small JSON API. Start a download, then poll its
-                status until it finishes. All request and response bodies are
-                JSON. Click any code block to copy it.
-            </p>
-
-            <!-- Endpoint: validate -->
-            <section class="ep">
-                <div class="ep-line">
-                    <span class="method post">POST</span>
-                    <span class="ep-path">/api/validate</span>
+        <div class="main">
+            <div class="main-inner">
+                <div class="page-head">
+                    <div class="titles">
+                        <h1>API docs</h1>
+                        <p class="sub">base url: <span id="base-url" class="mono"></span></p>
+                    </div>
                 </div>
-                <p class="ep-desc">Check whether a string is a valid YouTube URL and whether it points at a collection (bulk).</p>
 
-                <div class="ep-cols">
-                    <div class="ep-col">
-                        <h4>request body</h4>
-                        <div class="copy">
-                            <button class="copy-btn" type="button" title="copy">copy</button>
-                            <pre class="code">{
+                <main class="docs">
+                    <p class="lead">
+                        Snag exposes a small JSON API. Start a download, then poll
+                        its status until it finishes. All request and response
+                        bodies are JSON. Hover a code block and click to copy it.
+                    </p>
+
+                    <!-- Endpoint: validate -->
+                    <section class="ep">
+                        <div class="ep-line">
+                            <span class="method post">POST</span>
+                            <span class="ep-path">/api/validate</span>
+                        </div>
+                        <p class="ep-desc">Check whether a string is a valid YouTube URL and whether it points at a collection (bulk).</p>
+
+                        <div class="ep-cols">
+                            <div class="ep-col">
+                                <h4>Request body</h4>
+                                <div class="copy">
+                                    <button class="copy-btn" type="button" title="copy">copy</button>
+                                    <pre class="code">{
   "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
 }</pre>
-                        </div>
-                    </div>
-                    <div class="ep-col">
-                        <h4>response · 200</h4>
-                        <div class="copy">
-                            <button class="copy-btn" type="button" title="copy">copy</button>
-                            <pre class="code">{
+                                </div>
+                            </div>
+                            <div class="ep-col">
+                                <h4>Response · 200</h4>
+                                <div class="copy">
+                                    <button class="copy-btn" type="button" title="copy">copy</button>
+                                    <pre class="code">{
   "valid": true,
   "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
   "bulk": false
 }</pre>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                </div>
-            </section>
+                    </section>
 
-            <!-- Endpoint: download -->
-            <section class="ep">
-                <div class="ep-line">
-                    <span class="method post">POST</span>
-                    <span class="ep-path">/api/download</span>
-                </div>
-                <p class="ep-desc">Start a download. Returns a <code>job_id</code> you can use to poll status or cancel. Enforces a limit of 2 concurrent downloads.</p>
+                    <!-- Endpoint: download -->
+                    <section class="ep">
+                        <div class="ep-line">
+                            <span class="method post">POST</span>
+                            <span class="ep-path">/api/download</span>
+                        </div>
+                        <p class="ep-desc">Start a download. Returns a <code>job_id</code> you can use to poll status or cancel. Enforces a limit of 2 concurrent downloads.</p>
 
-                <div class="ep-block">
-                    <h4>request body</h4>
-                    <div class="copy">
-                        <button class="copy-btn" type="button" title="copy">copy</button>
-                        <pre class="code">{
+                        <div class="ep-block">
+                            <h4>Request body</h4>
+                            <div class="copy">
+                                <button class="copy-btn" type="button" title="copy">copy</button>
+                                <pre class="code">{
   "url": "https://www.youtube.com/watch?v=...",
   "type": "video",              // video | bulk | mp3
   "format": "best",             // best | 1080 | 720 | 480 | audio | video
@@ -115,45 +127,45 @@
   "fragments": 0,               // 0=off 2/4/8/16 concurrent fragments
   "metadata": false             // embed tags/thumbnail/chapters (off by default)
 }</pre>
-                    </div>
-                </div>
+                            </div>
+                        </div>
 
-                <div class="ep-cols">
-                    <div class="ep-col">
-                        <h4>response · 200</h4>
-                        <div class="copy">
-                            <button class="copy-btn" type="button" title="copy">copy</button>
-                            <pre class="code">{
+                        <div class="ep-cols">
+                            <div class="ep-col">
+                                <h4>Response · 200</h4>
+                                <div class="copy">
+                                    <button class="copy-btn" type="button" title="copy">copy</button>
+                                    <pre class="code">{
   "success": true,
   "job_id": "1712345678901"
 }</pre>
-                        </div>
-                    </div>
-                    <div class="ep-col">
-                        <h4>errors</h4>
-                        <div class="copy">
-                            <button class="copy-btn" type="button" title="copy">copy</button>
-                            <pre class="code">400 { "success": false, "error": "Invalid YouTube URL" }
+                                </div>
+                            </div>
+                            <div class="ep-col">
+                                <h4>Errors</h4>
+                                <div class="copy">
+                                    <button class="copy-btn" type="button" title="copy">copy</button>
+                                    <pre class="code">400 { "success": false, "error": "Invalid YouTube URL" }
 429 { "success": false, "error": "Too many concurrent downloads" }</pre>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                </div>
-            </section>
+                    </section>
 
-            <!-- Endpoint: status -->
-            <section class="ep">
-                <div class="ep-line">
-                    <span class="method get">GET</span>
-                    <span class="ep-path">/api/status/&lt;job_id&gt;</span>
-                </div>
-                <p class="ep-desc">Poll the progress and status of a running job. <code>status</code> is one of <code>pending</code>, <code>completed</code>, <code>error</code>, <code>cancelled</code>.</p>
+                    <!-- Endpoint: status -->
+                    <section class="ep">
+                        <div class="ep-line">
+                            <span class="method get">GET</span>
+                            <span class="ep-path">/api/status/&lt;job_id&gt;</span>
+                        </div>
+                        <p class="ep-desc">Poll the progress and status of a running job. <code>status</code> is one of <code>pending</code>, <code>completed</code>, <code>error</code>, <code>cancelled</code>.</p>
 
-                <div class="ep-cols">
-                    <div class="ep-col">
-                        <h4>response · 200</h4>
-                        <div class="copy">
-                            <button class="copy-btn" type="button" title="copy">copy</button>
-                            <pre class="code">{
+                        <div class="ep-cols">
+                            <div class="ep-col">
+                                <h4>Response · 200</h4>
+                                <div class="copy">
+                                    <button class="copy-btn" type="button" title="copy">copy</button>
+                                    <pre class="code">{
   "success": true,
   "job": {
     "id": "1712345678901",
@@ -165,102 +177,101 @@
     "cancelled": false
   }
 }</pre>
+                                </div>
+                            </div>
+                            <div class="ep-col">
+                                <h4>Errors</h4>
+                                <div class="copy">
+                                    <button class="copy-btn" type="button" title="copy">copy</button>
+                                    <pre class="code">404 { "success": false, "error": "Job not found" }</pre>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                    <div class="ep-col">
-                        <h4>errors</h4>
-                        <div class="copy">
-                            <button class="copy-btn" type="button" title="copy">copy</button>
-                            <pre class="code">404 { "success": false, "error": "Job not found" }</pre>
+                    </section>
+
+                    <!-- Endpoint: cancel -->
+                    <section class="ep">
+                        <div class="ep-line">
+                            <span class="method post">POST</span>
+                            <span class="ep-path">/api/cancel/&lt;job_id&gt;</span>
                         </div>
-                    </div>
-                </div>
-            </section>
+                        <p class="ep-desc">Flag a running job so its worker thread stops yt-dlp. The job's status becomes <code>cancelled</code>.</p>
 
-            <!-- Endpoint: cancel -->
-            <section class="ep">
-                <div class="ep-line">
-                    <span class="method post">POST</span>
-                    <span class="ep-path">/api/cancel/&lt;job_id&gt;</span>
-                </div>
-                <p class="ep-desc">Flag a running job so its worker thread stops yt-dlp. The job's status becomes <code>cancelled</code>.</p>
-
-                <div class="ep-cols">
-                    <div class="ep-col">
-                        <h4>response · 200</h4>
-                        <div class="copy">
-                            <button class="copy-btn" type="button" title="copy">copy</button>
-                            <pre class="code">{
+                        <div class="ep-cols">
+                            <div class="ep-col">
+                                <h4>Response · 200</h4>
+                                <div class="copy">
+                                    <button class="copy-btn" type="button" title="copy">copy</button>
+                                    <pre class="code">{
   "success": true,
   "job_id": "1712345678901"
 }</pre>
+                                </div>
+                            </div>
+                            <div class="ep-col">
+                                <h4>Errors</h4>
+                                <div class="copy">
+                                    <button class="copy-btn" type="button" title="copy">copy</button>
+                                    <pre class="code">404 { "success": false, "error": "Job not found" }</pre>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                    <div class="ep-col">
-                        <h4>errors</h4>
-                        <div class="copy">
-                            <button class="copy-btn" type="button" title="copy">copy</button>
-                            <pre class="code">404 { "success": false, "error": "Job not found" }</pre>
+                    </section>
+
+                    <!-- Endpoint: downloads -->
+                    <section class="ep">
+                        <div class="ep-line">
+                            <span class="method get">GET</span>
+                            <span class="ep-path">/api/downloads</span>
                         </div>
-                    </div>
-                </div>
-            </section>
+                        <p class="ep-desc">List all files currently in the downloads folder with their sizes.</p>
 
-            <!-- Endpoint: downloads -->
-            <section class="ep">
-                <div class="ep-line">
-                    <span class="method get">GET</span>
-                    <span class="ep-path">/api/downloads</span>
-                </div>
-                <p class="ep-desc">List all files currently in the downloads folder with their sizes.</p>
-
-                <div class="ep-cols">
-                    <div class="ep-col">
-                        <h4>response · 200</h4>
-                        <div class="copy">
-                            <button class="copy-btn" type="button" title="copy">copy</button>
-                            <pre class="code">{
+                        <div class="ep-cols">
+                            <div class="ep-col">
+                                <h4>Response · 200</h4>
+                                <div class="copy">
+                                    <button class="copy-btn" type="button" title="copy">copy</button>
+                                    <pre class="code">{
   "success": true,
   "downloads": [
     { "name": "Some Video.mp4", "size": 13290030 }
   ]
 }</pre>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                </div>
-            </section>
+                    </section>
 
-            <!-- Field reference -->
-            <section class="ep">
-                <h2 class="docs-sub">Field reference</h2>
-                <table class="ref">
-                    <thead>
-                        <tr><th>field</th><th>values</th><th>notes</th></tr>
-                    </thead>
-                    <tbody>
-                        <tr><td>type</td><td>video · bulk · mp3</td><td>bulk = playlist / channel / user profile</td></tr>
-                        <tr><td>format</td><td>best · 1080 · 720 · 480 · audio · video</td><td>quality / format selector</td></tr>
-                        <tr><td>audio_only</td><td>true · false</td><td>extract audio instead of video</td></tr>
-                        <tr><td>audio_format</td><td>mp3 · m4a · wav · ogg · flac</td><td>used when audio_only is true</td></tr>
-                        <tr><td>audio_quality</td><td>0 · 1 · 2 · 3 · 4</td><td>0=vbr, 1=128k, 2=192k, 3=256k, 4=320k</td></tr>
-                        <tr><td>output_format</td><td>mp4 · webm · mkv · mov</td><td>video container (merge format)</td></tr>
-                        <tr><td>output_template</td><td>string</td><td>single downloads only, e.g. <code>%(title)s.%(ext)s</code></td></tr>
-                        <tr><td>resume</td><td>true · false</td><td>interruptible + skip existing files</td></tr>
-                        <tr><td>fragments</td><td>0 · 2 · 4 · 8 · 16</td><td>concurrent fragment threads (0 = off)</td></tr>
-                        <tr><td>metadata</td><td>true · false</td><td>embed tags, thumbnail &amp; chapters (off by default)</td></tr>
-                    </tbody>
-                </table>
-                <p class="muted note">Metadata (tags, thumbnail, chapters) is only embedded when <code>metadata</code> is <code>true</code>.</p>
-            </section>
-        </main>
+                    <!-- Field reference -->
+                    <section class="ep">
+                        <h2 class="docs-sub">Field reference</h2>
+                        <table class="ref">
+                            <thead>
+                                <tr><th>field</th><th>values</th><th>notes</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr><td>type</td><td>video · bulk · mp3</td><td>bulk = playlist / channel / user profile</td></tr>
+                                <tr><td>format</td><td>best · 1080 · 720 · 480 · audio · video</td><td>quality / format selector</td></tr>
+                                <tr><td>audio_only</td><td>true · false</td><td>extract audio instead of video</td></tr>
+                                <tr><td>audio_format</td><td>mp3 · m4a · wav · ogg · flac</td><td>used when audio_only is true</td></tr>
+                                <tr><td>audio_quality</td><td>0 · 1 · 2 · 3 · 4</td><td>0=vbr, 1=128k, 2=192k, 3=256k, 4=320k</td></tr>
+                                <tr><td>output_format</td><td>mp4 · webm · mkv · mov</td><td>video container (merge format)</td></tr>
+                                <tr><td>output_template</td><td>string</td><td>single downloads only, e.g. <code>%(title)s.%(ext)s</code></td></tr>
+                                <tr><td>resume</td><td>true · false</td><td>interruptible + skip existing files</td></tr>
+                                <tr><td>fragments</td><td>0 · 2 · 4 · 8 · 16</td><td>concurrent fragment threads (0 = off)</td></tr>
+                                <tr><td>metadata</td><td>true · false</td><td>embed tags, thumbnail &amp; chapters (off by default)</td></tr>
+                            </tbody>
+                        </table>
+                        <p class="muted note">Metadata (tags, thumbnail, chapters) is only embedded when <code>metadata</code> is <code>true</code>.</p>
+                    </section>
+                </main>
 
-        <footer>
-            <span>snag — powered by <a href="https://github.com/yt-dlp/yt-dlp" target="_blank">yt-dlp</a></span>
-        </footer>
-
-        </div><!-- /.content -->
-        </div><!-- /.body-row -->
-    </div><!-- /.layout -->
+                <footer>
+                    <span>Snag — powered by <a href="https://github.com/yt-dlp/yt-dlp" target="_blank">yt-dlp</a></span>
+                </footer>
+            </div>
+        </div>
+    </div>
     <script src="/static/docs.js"></script>
 </body>
 </html>

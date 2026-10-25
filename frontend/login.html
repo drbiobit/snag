@@ -6,51 +6,59 @@
     <title>Snag · sign in</title>
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
     <link rel="stylesheet" href="/static/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
     <script src="/static/theme.js"></script>
 </head>
 <body class="login-body">
     <div class="login-wrap">
         <div class="login-card">
-            <a class="brand" href="/" aria-label="snag home">
-                <span>snag<span class="caret">_</span></span>
+            <a class="brand" href="/" aria-label="Snag home">
+                <span class="logo">
+                    <svg viewBox="0 0 32 32" fill="none" aria-hidden="true">
+                        <path d="M16 4 v13 a7 7 0 0 0 14 0 v-2" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </span>
+                <span class="name">Snag<span class="dot">.</span></span>
             </a>
 
             <!-- First-run: create the initial account (shown by default) -->
             <div id="setup-panel" class="login-panel">
-                <h2>create account</h2>
-                <p class="muted">first run — set a username and password</p>
+                <h2>Create account</h2>
+                <p class="muted">First run — set a username and password</p>
                 <form id="setup-form">
                     <div class="field">
-                        <label for="setup-user">username</label>
+                        <label for="setup-user">Username</label>
                         <input type="text" id="setup-user" autocomplete="username" spellcheck="false" required>
                     </div>
                     <div class="field">
-                        <label for="setup-pass">password</label>
+                        <label for="setup-pass">Password</label>
                         <input type="password" id="setup-pass" autocomplete="new-password" required minlength="4">
                     </div>
                     <div class="field">
-                        <label for="setup-pass2">confirm password</label>
+                        <label for="setup-pass2">Confirm password</label>
                         <input type="password" id="setup-pass2" autocomplete="new-password" required>
                     </div>
-                    <button type="submit" class="btn btn-primary" id="setup-btn">create</button>
+                    <button type="submit" class="btn btn-primary" id="setup-btn">Create account</button>
                 </form>
                 <p class="login-error" id="setup-error" role="alert"></p>
             </div>
 
             <!-- Normal: sign in (hidden until JS confirms an account exists) -->
             <div id="login-panel" class="login-panel" style="display:none;">
-                <h2>sign in</h2>
-                <p class="muted">enter your credentials</p>
+                <h2>Sign in</h2>
+                <p class="muted">Enter your credentials</p>
                 <form id="login-form">
                     <div class="field">
-                        <label for="login-user">username</label>
+                        <label for="login-user">Username</label>
                         <input type="text" id="login-user" autocomplete="username" spellcheck="false" required>
                     </div>
                     <div class="field">
-                        <label for="login-pass">password</label>
+                        <label for="login-pass">Password</label>
                         <input type="password" id="login-pass" autocomplete="current-password" required>
                     </div>
-                    <button type="submit" class="btn btn-primary" id="login-btn">unlock</button>
+                    <button type="submit" class="btn btn-primary" id="login-btn">Unlock</button>
                 </form>
                 <p class="login-error" id="login-error" role="alert"></p>
             </div>
