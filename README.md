@@ -226,7 +226,7 @@ frontend/login.html         # Login / first-setup page
 frontend/summarize.html     # AI Summarize page (3-step pipeline)
 frontend/app.js             # Frontend logic
 frontend/ai-setup.js        # One-time AI endpoint setup popup
-frontend/style.css          # Styles (pure-black terminal theme)
+frontend/style.css          # Design system: tokens + themes (ink / charcoal / light)
 yt_summarize/
   yt-transcribe.py          # YouTube URL -> transcript Markdown
   summarize.py              # transcript + system prompt -> AI article

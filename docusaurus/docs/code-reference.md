@@ -512,11 +512,12 @@ flash of the default theme). It reads the saved theme from `localStorage` and
 sets a `data-theme` attribute on `<html>`; the CSS defines each theme via
 `[data-theme="…"]` selectors. It exposes two globals the other pages use:
 `window.snagSetTheme(name)` (set + persist) and `window.snagGetTheme()`.
-`"black"` is the default and needs no attribute.
+`"light"` is the default for new users; `"black"` (the dark "ink" theme)
+maps to the CSS `:root` defaults and needs no attribute.
 
 ### `style.css` — all the styling
 
-A single ~830-line stylesheet. It defines the CSS custom properties
+A single ~1100-line stylesheet. It defines the CSS custom properties
 (`--accent`, `--bg`, `--muted`, etc.) that every theme overrides, plus all the
 component styles (form fields, progress bar, file list, tags, buttons).
 Because the themes are just different values for the same variables, adding a
