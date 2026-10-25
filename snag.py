@@ -1268,9 +1268,13 @@ def download():
     if not is_valid_cookies(d.get('cookies', '')):
         return jsonify(success=False, error='Invalid cookie browser (e.g. chrome, firefox, edge)'), 400
 
-    # Register the job (and check the limit) under the lock.
+    # Register the job (and check the limit) under the lock. Only count
+    # jobs that are still pending/running: finished jobs linger in the
+    # table for FINISHED_JOB_TTL so a late poll can still read them, but
+    # they must not block new downloads.
     with jobs_lock:
-        if len(jobs) >= MAX_CONCURRENT:
+        active = sum(1 for j in jobs.values() if not j.get('finished_at'))
+        if active >= MAX_CONCURRENT:
             return jsonify(success=False, error='Too many concurrent downloads'), 429
 
         job_id = uuid.uuid4().hex
