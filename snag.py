@@ -846,13 +846,6 @@ def summarize_page():
     return send_from_directory(app.static_folder, 'summarize.html')
 
 
-@app.route('/changelog')
-@login_required
-def changelog_page():
-    """Serve the in-app changelog page."""
-    return send_from_directory(app.static_folder, 'changelog.html')
-
-
 # ---------------------------------------------------------------------------
 # AI summarize (YouTube -> transcript -> AI article)
 # ---------------------------------------------------------------------------
