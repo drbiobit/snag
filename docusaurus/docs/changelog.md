@@ -8,11 +8,24 @@ title: Changelog
 Every release of Snag, newest first. Version numbers follow
 [semantic versioning](https://semver.org/).
 
-## v1.2.0 — System Prompt Controls & Fixes (2026-10-25)
+## v1.2.0 — UI Overhaul, System Prompt Controls & Fixes (2026-10-25)
 
-The system prompt is now fully editable from the UI, the concurrency cap
-only counts active jobs, and the AI pipeline got more resilient.
+The app gets a complete visual redesign, the system prompt is fully
+editable from the UI, the concurrency cap only counts active jobs, and
+the AI pipeline got more resilient.
 
+- **Changed** — full UI redesign: a "precision instrument" design system
+  with a shared sidebar navigation shell on every page, card-based
+  layouts, consistent page headers, a new logo mark, and the original
+  favicon restored.
+- **Changed** — pure black is the default theme (no warm tint); the accent
+  color switched from orange to mint green (`#3ddc84`); the charcoal
+  theme was removed — two themes remain (black, light).
+- **Changed** — typography: Space Grotesk (display), IBM Plex Sans (UI),
+  IBM Plex Mono (data), loaded from Google Fonts with system fallbacks.
+- **Added** — responsive layout (the sidebar collapses into a top bar on
+  narrow screens), visible keyboard focus, ARIA labels, and
+  `prefers-reduced-motion` support.
 - **Added** — system prompt editor on the Summarize page (step 3): edit it
   where you summarize; it auto-saves to the database as you type and is
   sent with every summarize request.
@@ -22,8 +35,6 @@ only counts active jobs, and the AI pipeline got more resilient.
   (many local servers — Ollama, LM Studio, vLLM — serve the API under
   `/v1`); a persistent 404 now explains the likely causes (model not
   loaded, missing `/v1`).
-- **Changed** — UI font switched from Ubuntu Mono to the system sans-serif
-  stack; code blocks and the error box stay monospace.
 - **Changed** — removed the home page "quick setup" card and the in-app
   changelog page (the changelog lives on this docs site).
 - **Fixed** — the concurrency limit counted finished jobs, so completed
