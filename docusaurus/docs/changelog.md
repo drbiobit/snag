@@ -6,8 +6,32 @@ title: Changelog
 # Changelog
 
 Every release of Snag, newest first. Version numbers follow
-[semantic versioning](https://semver.org/). The in-app version of this page is
-at **Changelog** in the top navigation.
+[semantic versioning](https://semver.org/).
+
+## v1.2.0 — System Prompt Controls & Fixes (2026-10-25)
+
+The system prompt is now fully editable from the UI, the concurrency cap
+only counts active jobs, and the AI pipeline got more resilient.
+
+- **Added** — system prompt editor on the Summarize page (step 3): edit it
+  where you summarize; it auto-saves to the database as you type and is
+  sent with every summarize request.
+- **Added** — first-run AI setup now asks for the system prompt alongside
+  the endpoint, pre-filled with the default.
+- **Changed** — AI requests that 404 are retried once with a `/v1` prefix
+  (many local servers — Ollama, LM Studio, vLLM — serve the API under
+  `/v1`); a persistent 404 now explains the likely causes (model not
+  loaded, missing `/v1`).
+- **Changed** — UI font switched from Ubuntu Mono to the system sans-serif
+  stack; code blocks and the error box stay monospace.
+- **Changed** — removed the home page "quick setup" card and the in-app
+  changelog page (the changelog lives on this docs site).
+- **Fixed** — the concurrency limit counted finished jobs, so completed
+  downloads could block new ones with a 429. Only active jobs count now.
+- **Fixed** — the "include timestamps" option on the Summarize page was
+  ignored (always on); it now works.
+- **Docs** — README: corrected stale auth references (`snag.db`, `/config`
+  volume) and completed the API endpoint table.
 
 ## v1.1.0 — AI Summarize
 
