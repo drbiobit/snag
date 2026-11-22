@@ -278,7 +278,7 @@ downloads/                  # Output files
 }
 ```
 ## ⚠️ WARNING ⚠️
-The YouTube transcription and summarization feature within the local LLM might cause IP bans due to YouTube's restrictions on scraping video transcripts. You can prevent this by using a VPN, a reverse proxy, or rotating proxies. In the next release, we will try to fix this.
+The YouTube transcription and summarization feature within the local LLM might cause IP bans due to YouTube's restrictions on scraping video transcripts. You can prevent this by using a VPN, a reverse proxy, or rotating proxies.
 IP bans only happen when you scrape multiple videos at once. If you do it once in a while, there are no IP bans.
 
 ## Notes
