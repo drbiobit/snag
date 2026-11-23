@@ -214,6 +214,13 @@ in-browser account — the setup page is skipped entirely.
   lifetime). The signing key is auto-generated on first start and persisted
   to `data/snag.db` so sessions survive restarts.
 - `/health` is always open (no auth) so container healthchecks work.
+- Every response carries a strict Content-Security-Policy (same-origin scripts
+  and styles only; no inline scripts; Google Fonts allowed), plus
+  `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`,
+  `Referrer-Policy: no-referrer` and a `Permissions-Policy`.
+- Filenames, video titles, URLs and AI-generated articles are rendered via DOM
+  APIs or sanitized (DOMPurify) — never raw `innerHTML` — so a crafted video
+  title or URL cannot inject markup into a page.
 - See `.env.example` for all available variables, and [SECURITY.md](SECURITY.md)
   for how to report a vulnerability.
 
@@ -245,7 +252,7 @@ downloads/                  # Output files
 | `/api/logout` | POST | end the current session |
 | `/api/auth/clear` | POST | delete all stored credentials (resets to first-run) |
 | `/api/validate` | POST | `{url}` → validate YouTube URL + detect bulk |
-| `/api/preview` | POST | `{url}` → title, item count, resolutions & codecs |
+| `/api/preview` | POST / GET | `{url}` (or `?url=`) → title, item count, resolutions & codecs |
 | `/api/download` | POST | start a download → `{job_id}` |
 | `/api/status/<job_id>` | GET | job progress/status |
 | `/api/cancel/<job_id>` | POST | cancel a running job |
@@ -286,6 +293,10 @@ IP bans only happen when you scrape multiple videos at once. If you do it once i
 - **Metadata** (tags, thumbnail, chapters) is only embedded when the "embed metadata" option is enabled.
 - **Output templates** only apply to single downloads — bulk downloads always
   use the default per-file naming so each item in a collection is saved separately.
+  Relative templates (e.g. `%(title)s.%(ext)s`) resolve against the downloads
+  folder; absolute paths work only if they stay inside it.
+- **`type: "mp3"`** forces audio-only output — the downloader uses `bestaudio`
+  and converts to MP3 regardless of the `audio_only` flag.
 - **Multithreaded fragments** speed up DASH/HLS downloads; leave "off" for
   progressive (non-fragment) streams.
 

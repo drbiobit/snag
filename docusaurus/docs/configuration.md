@@ -147,10 +147,12 @@ examples.
 | `POST` | `/api/cancel/<job_id>` | Flag a running job so its worker thread stops `yt-dlp`. |
 
 The `/api/download` body accepts every option the UI exposes: `url`, `type`
-(`single`/`bulk`), `format`, `audio_only`, `audio_format`, `audio_quality`,
-`output_format`, `output_template`, `resume`, `fragments`, `metadata`,
-`playlist_index`, `subtitles`, `sub_langs`, `sub_embed`, `trim_start`,
-`trim_end`, `playlist_items`, `cookies`, and `thumbnails`. See the
+(`video` / `bulk` / `mp3` — `mp3` forces audio-only output), `format`,
+`audio_only`, `audio_format`, `audio_quality`, `output_format`, `output_template`
+(relative paths resolve against the downloads folder; absolute paths must stay
+inside it), `resume`, `fragments`, `metadata`, `playlist_index`, `subtitles`,
+`sub_langs`, `sub_embed`, `trim_start`, `trim_end`, `playlist_items`, `cookies`,
+and `thumbnails`. See the
 [Code Reference](/code-reference#build_args--the-function-that-matters-most)
 for how each maps to a `yt-dlp` flag.
 
@@ -177,14 +179,14 @@ for how each maps to a `yt-dlp` flag.
 | `POST` | `/api/ai/settings` | Save AI settings. Body: any of `ai_endpoint`, `ai_model`, `ai_api_key`, `ai_temperature`, `ai_timeout`, `ai_langs`, `ai_timestamps`, `ai_system_prompt`. |
 | `POST` | `/api/ai/setup-done` | Mark the one-time AI setup prompt as handled. |
 | `GET` | `/api/ai/models` | List models from the configured (or `?endpoint=`) endpoint. Returns `{models: [...]}`. |
-| `POST` | `/api/ai/transcript` | Fetch a transcript (video, playlist, or channel) by running `yt-transcribe.py`. Body: `{url, type?, count?, languages?, timestamps?}`. Returns `{transcript, video_id?, count?, skipped?}`. |
+| `POST` | `/api/ai/transcript` | Fetch a transcript (video, playlist, or channel) by running `yt-transcribe.py`. Body: `{url, type?, count?, languages?, timestamps?}`. Collections are capped at 50 videos. Returns `{transcript, video_id?, count?, skipped?}`. |
 | `POST` | `/api/ai/summarize` | Summarize a transcript by running `summarize.py` against the configured endpoint. Body: `{transcript, model?, temperature?, system_prompt?}`. Returns `{article}`. |
 
 ### Preview & health
 
 | Method | Path | Purpose |
 |--------|------|---------|
-| `POST` / `GET` | `/api/preview` | Run `yt-dlp -J` (no download) and return the title, item count, available resolutions, and audio codecs. Body: `{url}`. |
+| `POST` / `GET` | `/api/preview` | Run `yt-dlp -J` (no download) and return the title, item count, available resolutions, and audio codecs. Body: `{url}` — or use `GET /api/preview?url=…`. |
 | `GET` | `/health` | Liveness probe (no auth). Returns status, uptime, and active job count. |
 
 ### Example: start a download and poll it

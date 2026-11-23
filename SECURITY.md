@@ -44,7 +44,12 @@ auditing it):
   per-user salt). Plaintext is never stored.
 - **Sessions** use signed Flask cookies (`HttpOnly`, `SameSite=Lax`, 7-day
   lifetime). The signing key is auto-generated on first start and persisted to
-  `data/secret`.
+  the `meta` table of the SQLite database.
+- Every response carries a strict Content-Security-Policy and related security
+  headers (`X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`,
+  `Permissions-Policy`). User-controlled data (URLs, video titles, AI-generated
+  articles) is rendered via DOM APIs or DOMPurify sanitization — never raw
+  `innerHTML`.
 - **`/health`** is intentionally unauthenticated so container healthchecks
   work; it exposes no data.
 - Snag is designed to be **self-hosted behind your own authentication or a

@@ -134,6 +134,21 @@ There are no frameworks doing this for us, so it's all explicit:
   preview endpoint, which also spawns a `yt-dlp` process. Without a cap, a
   malicious client could hammer `/api/preview` and fork unlimited processes.
 
+### Security headers
+
+Every response carries a strict set of `after_request` headers: a Content-Security-Policy
+(scripts and styles only from the app itself + Google Fonts; no inline scripts; no third-party
+APIs), `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`,
+and a `Permissions-Policy` disabling camera/microphone/geolocation. The frontend only loads
+same-origin scripts and vendored libraries (no third-party CDNs).
+
+### Job bookkeeping
+
+Finished jobs are pruned from the in-memory `jobs` dict by a background thread (every minute,
+TTL 120s) instead of relying solely on status polls, so long-running idle servers don't grow
+the dict without bound. History records `created_at` from the job's actual start time, not the
+time the job was logged.
+
 ### Authentication
 
 Snag ships with built-in login so you can expose it to the internet without
@@ -355,10 +370,13 @@ config is small but has one critical constraint:
   1. The `jobs` dict lives in a single process's memory, so if you ran
   multiple workers, a `/api/status` poll could land on a different worker than
   the one that registered the job and get a 404. Concurrency comes from
-  **threads** (`threads = 4`), not workers.
+  **threads** (`threads = 8`), not workers.
 - **`bind = "0.0.0.0:8000"`** — listens on all interfaces.
-- **`timeout = 120`** — fine because downloads run in background threads and
-  the HTTP request returns fast.
+- **`timeout = 1800`** — downloads run in background threads and return fast,
+  but the AI transcript/summarize endpoints are synchronous and can legitimately
+  block for minutes (they shell out to `yt-transcribe.py` / `summarize.py`),
+  so the hard timeout is generous. `threads = 8` lets those occupy threads
+  without stalling downloads.
 - **Logging to stdout/stderr** (`-`) so a process manager (systemd, Docker)
   can capture it.
 - **`proc_name = "snag"`** — shows up as `snag` in `ps`/`top`.

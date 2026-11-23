@@ -250,13 +250,13 @@
                                 <tr><th>field</th><th>values</th><th>notes</th></tr>
                             </thead>
                             <tbody>
-                                <tr><td>type</td><td>video · bulk · mp3</td><td>bulk = playlist / channel / user profile</td></tr>
+                                <tr><td>type</td><td>video · bulk · mp3</td><td>bulk = playlist / channel / user profile; mp3 forces audio-only output</td></tr>
                                 <tr><td>format</td><td>best · 1080 · 720 · 480 · audio · video</td><td>quality / format selector</td></tr>
                                 <tr><td>audio_only</td><td>true · false</td><td>extract audio instead of video</td></tr>
                                 <tr><td>audio_format</td><td>mp3 · m4a · wav · ogg · flac</td><td>used when audio_only is true</td></tr>
                                 <tr><td>audio_quality</td><td>0 · 1 · 2 · 3 · 4</td><td>0=vbr, 1=128k, 2=192k, 3=256k, 4=320k</td></tr>
                                 <tr><td>output_format</td><td>mp4 · webm · mkv · mov</td><td>video container (merge format)</td></tr>
-                                <tr><td>output_template</td><td>string</td><td>single downloads only, e.g. <code>%(title)s.%(ext)s</code></td></tr>
+                                <tr><td>output_template</td><td>string</td><td>single downloads only, e.g. <code>%(title)s.%(ext)s</code>; relative paths resolve against the downloads folder</td></tr>
                                 <tr><td>resume</td><td>true · false</td><td>interruptible + skip existing files</td></tr>
                                 <tr><td>fragments</td><td>0 · 2 · 4 · 8 · 16</td><td>concurrent fragment threads (0 = off)</td></tr>
                                 <tr><td>metadata</td><td>true · false</td><td>embed tags, thumbnail &amp; chapters (off by default)</td></tr>
