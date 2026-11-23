@@ -8,6 +8,53 @@ title: Changelog
 Every release of Snag, newest first. Version numbers follow
 [semantic versioning](https://semver.org/).
 
+## v1.3.0 — Security hardening, template/mp3 fixes, robustness (2026-11-23)
+
+A security and correctness pass over the whole app: every response now ships
+strict security headers, user-controlled data is rendered via DOM APIs or
+sanitized HTML (no raw `innerHTML` anywhere), the frontend is fully
+self-contained (no third-party CDNs), and several silently-ignored options
+now actually work.
+
+- **Added** — strict Content-Security-Policy and security headers on every
+  response (`X-Content-Type-Options`, `X-Frame-Options: DENY`,
+  `Referrer-Policy`, `Permissions-Policy`).
+- **Added** — `GET /api/preview?url=…` (the `?url=` query parameter, in
+  addition to the JSON body).
+- **Added** — background thread prunes finished jobs every minute (previously
+  only pruned when status polls happened).
+- **Added** — frontend renders AI-generated articles through vendored
+  DOMPurify with a strict allowlist (no images, forms, iframes, or scripts);
+  `marked` and `DOMPurify` are vendored locally, so the app no longer loads
+  third-party scripts.
+- **Fixed** — XSS everywhere user-controlled data reached the page: history
+  rows (craftable URLs), download rows, bulk file lists, preview tags,
+  status messages, and the Summarize article. All render via DOM APIs or
+  sanitized HTML now.
+- **Fixed** — the URL validator accepted crafted URLs (e.g. `"><img onerror>`)
+  that could be stored in history and injected into pages. The regex is now
+  anchored and excludes markup-carrying characters.
+- **Fixed** — relative `output_template` values (e.g. `%(title)s.%(ext)s`) were
+  silently ignored; they now resolve against the downloads folder.
+- **Fixed** — `type: "mp3"` was a dead option (it downloaded video with an
+  mp4 merge). It now forces audio-only output, and the UI locks the audio
+  checkbox on in that mode.
+- **Fixed** — history `created_at` was identical to `finished_at` (both were
+  the time the job was logged); `created_at` now records the job's actual
+  start time.
+- **Fixed** — unhandled 500s from the AI endpoints: `timeout` values like
+  `"banana"` now coerce and clamp (10–1800s) instead of crashing; non-http(s)
+  endpoints (SSRF) are rejected; collection transcript fetches are capped at
+  50 videos.
+- **Fixed** — clip timestamp validation now rejects impossible values
+  (`1:00:60`, `1:2:3:4`) — plain seconds and `MM:SS`/`H:MM:SS` with seconds < 60.
+- **Fixed** — `is_inside_downloads` no longer raises on cross-drive/exception
+  paths; it returns False.
+- **Changed** — gunicorn `timeout` raised from 120s to 1800s so synchronous
+  AI endpoints don't get killed mid-pipeline; threads documented (8).
+- **Docs** — README, SECURITY.md, and the docs site updated to match the new
+  behavior (security headers, relative templates, mp3, preview GET, cap).
+
 ## v1.2.0 — UI Overhaul, System Prompt Controls & Fixes (2026-10-25)
 
 The app gets a complete visual redesign, the system prompt is fully
