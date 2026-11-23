@@ -42,6 +42,37 @@ function saveState() {
     } catch (e) { /* storage full or unavailable - ignore */ }
 }
 
+// Render a Markdown article as sanitized HTML. The article is AI-generated
+// from arbitrary transcript content, so raw innerHTML (even from marked,
+// which does NOT sanitize) would be an injection vector. We use an explicit
+// allowlist (text + links only - no images, forms, iframes, scripts) so a
+// crafted transcript can't smuggle active content into the page. Falls back
+// to plain text when the vendored libs are unavailable.
+function renderArticle(text) {
+    const el = $('article');
+    if (window.marked && window.DOMPurify) {
+        try {
+            el.innerHTML = DOMPurify.sanitize(marked.parse(text), {
+            ALLOWED_TAGS: [
+                'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+                'p', 'a', 'ul', 'ol', 'li', 'strong', 'em', 'del',
+                'code', 'pre', 'blockquote', 'hr', 'br',
+                'table', 'thead', 'tbody', 'tr', 'th', 'td',
+                'span', 'div',
+            ],
+            ALLOWED_ATTR: ['href', 'title', 'class'],
+            FORBID_TAGS: ['img', 'script', 'iframe', 'form', 'input', 'button',
+                          'style', 'svg', 'math', 'audio', 'video', 'source'],
+            FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onfocus', 'style'],
+            });
+        } catch (e) {
+            el.textContent = text;   // sanitizer/parser failed: degrade to plain text
+        }
+    } else {
+        el.textContent = text;
+    }
+}
+
 function restoreState() {
     let s;
     try { s = JSON.parse(localStorage.getItem(LS_KEY) || 'null'); } catch (e) { s = null; }
@@ -62,7 +93,7 @@ function restoreState() {
     }
     if (s.article) {
         lastArticle = s.article;
-        $('article').innerHTML = window.marked ? marked.parse(s.article) : s.article;
+        renderArticle(s.article);
         $('result-meta').textContent = s.article.length.toLocaleString() + ' chars';
         $('result-card').style.display = '';
     }
@@ -77,7 +108,13 @@ function clearState() {
 function setStatus(id, msg, kind = 'info', spinner = false) {
     const el = $(id);
     el.className = 'status-line show' + (kind === 'err' ? ' err' : kind === 'ok' ? ' ok' : '');
-    el.innerHTML = (spinner ? '<span class="spinner"></span>' : '') + msg;
+    el.textContent = '';
+    if (spinner) {
+        const s = document.createElement('span');
+        s.className = 'spinner';
+        el.appendChild(s);
+    }
+    el.appendChild(document.createTextNode(msg));
 }
 function hideStatus(id) { $(id).className = 'status-line'; }
 
@@ -245,7 +282,7 @@ async function summarize() {
         const d = await r.json();
         if (!d.success) { setStatus('summarize-status', d.error || 'Summarize failed.', 'err'); return; }
         lastArticle = d.article;
-        $('article').innerHTML = window.marked ? marked.parse(d.article) : d.article;
+        renderArticle(d.article);
         $('result-meta').textContent = d.article.length.toLocaleString() + ' chars';
         $('result-card').style.display = '';
         setStatus('summarize-status', 'Done.', 'ok');

@@ -314,24 +314,33 @@ function renderFileList(job) {
     counter.textContent = `file ${total}`;
 
     // Rebuild the rows. We keep the current title in a module-level cache so
-    // the title persists even on polls that don't carry it.
+    // the title persists even on polls that don't carry it. Built with DOM
+    // API only - video titles are attacker-controlled, so innerHTML would be
+    // an injection vector.
     if (!renderFileList._titles) renderFileList._titles = {};
     const titles = renderFileList._titles;
     if (job.current_file) titles[total] = job.current_file;
 
-    let html = '';
+    list.textContent = '';
     for (let i = 1; i <= total; i++) {
         const pct = progress[i];
         const done = pct != null && pct >= 100;
         const title = titles[i] || `file ${i}`;
-        const pctText = pct != null ? `${Math.round(pct)}%` : (done ? '✓' : '…');
-        html += `<li class="file-row${done ? ' done' : ''}" title="${title.replace(/"/g, '&quot;')}">`
-              + `<span class="file-idx">${i}</span>`
-              + `<span class="file-title">${title}</span>`
-              + `<span class="file-pct">${pctText}</span>`
-              + `</li>`;
+        const li = document.createElement('li');
+        li.className = 'file-row' + (done ? ' done' : '');
+        li.setAttribute('title', title);
+        const idx = document.createElement('span');
+        idx.className = 'file-idx';
+        idx.textContent = String(i);
+        const titleEl = document.createElement('span');
+        titleEl.className = 'file-title';
+        titleEl.textContent = title;
+        const pctEl = document.createElement('span');
+        pctEl.className = 'file-pct';
+        pctEl.textContent = pct != null ? `${Math.round(pct)}%` : (done ? '✓' : '…');
+        li.append(idx, titleEl, pctEl);
+        list.appendChild(li);
     }
-    list.innerHTML = html;
     list.style.display = '';
 }
 
@@ -407,7 +416,7 @@ async function preview() {
     box.style.display = 'block';
     els['preview-title'].textContent = 'checking…';
     els['preview-meta'].textContent = '';
-    els['preview-tags'].innerHTML = '';
+    els['preview-tags'].textContent = '';
     try {
         const r = await fetch('/api/preview', {
             method: 'POST',
@@ -426,16 +435,24 @@ async function preview() {
             // Collection: we only know the item count (flat read has no per-item formats).
             bits.push(`${d.count} item${d.count === 1 ? '' : 's'}`);
             els['preview-meta'].textContent = bits.join(' · ');
-            els['preview-tags'].innerHTML =
-                '<span class="tag">playlist / channel / user</span>';
+            els['preview-tags'].textContent = '';
+            const tag = document.createElement('span');
+            tag.className = 'tag';
+            tag.textContent = 'playlist / channel / user';
+            els['preview-tags'].appendChild(tag);
             return;
         }
         // Single video: show the real resolutions + audio codecs.
         if (d.heights && d.heights.length) bits.push(`up to ${d.heights[0]}p`);
         els['preview-meta'].textContent = bits.join(' · ');
         const tags = [...d.heights.map(h => `${h}p`), ...d.formats];
-        els['preview-tags'].innerHTML = tags
-            .map(t => `<span class="tag">${t}</span>`).join('');
+        els['preview-tags'].textContent = '';
+        for (const t of tags) {
+            const tag = document.createElement('span');
+            tag.className = 'tag';
+            tag.textContent = String(t);
+            els['preview-tags'].appendChild(tag);
+        }
     } catch {
         els['preview-title'].textContent = 'could not reach the server';
     }
@@ -449,8 +466,19 @@ async function preview() {
 els.url.addEventListener('input', () => { validateUrl(); toggleTemplate(); });
 // Toggle the format/bitrate controls when "audio only" changes.
 els['audio-only'].addEventListener('change', toggleFormats);
-// Toggle the template field when the type changes (bulk hides it).
-els.type.addEventListener('change', toggleTemplate);
+// Toggle the template field when the type changes (bulk hides it). MP3
+// forces audio-only (checked and locked) so the type dropdown can't claim
+// "MP3" while downloading video.
+els.type.addEventListener('change', () => {
+    if (els.type.value === 'mp3') {
+        els['audio-only'].checked = true;
+        els['audio-only'].disabled = true;
+    } else {
+        els['audio-only'].disabled = false;
+    }
+    toggleFormats();
+    toggleTemplate();
+});
 // Toggle the subtitle options when the subtitles checkbox changes.
 els.subtitles.addEventListener('change', toggleSubs);
 // Hide the media format controls when "thumbnails only" is checked.

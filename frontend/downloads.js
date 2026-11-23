@@ -19,15 +19,33 @@ function formatSize(bytes) {
     return `${(bytes / 1024 ** i).toFixed(2)} ${units[i]}`;
 }
 
-// Render one row for a file.
+// Render one row for a file. Built with textContent/attribute assignments
+// only - never innerHTML - so a crafted filename can't inject markup.
 function row(f) {
     const el = document.createElement('div');
     el.className = 'dl-row';
-    el.innerHTML = `
-        <span class="dl-name" title="${f.name}">${f.name}</span>
-        <span class="dl-size">${formatSize(f.size)}</span>
-        <a class="dl-btn" href="/downloads/${encodeURIComponent(f.name)}" download>download</a>
-        <button class="dl-btn dl-del" data-name="${f.name}">delete</button>`;
+
+    const name = document.createElement('span');
+    name.className = 'dl-name';
+    name.setAttribute('title', f.name);
+    name.textContent = f.name;
+
+    const size = document.createElement('span');
+    size.className = 'dl-size';
+    size.textContent = formatSize(f.size);
+
+    const link = document.createElement('a');
+    link.className = 'dl-btn';
+    link.href = `/downloads/${encodeURIComponent(f.name)}`;
+    link.setAttribute('download', '');
+    link.textContent = 'download';
+
+    const del = document.createElement('button');
+    del.className = 'dl-btn dl-del';
+    del.dataset.name = f.name;
+    del.textContent = 'delete';
+
+    el.append(name, size, link, del);
     return el;
 }
 

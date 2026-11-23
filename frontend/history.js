@@ -35,19 +35,40 @@ function statusClass(s) {
     return 'hist-err';
 }
 
-// Render one row for a history entry.
+// Render one row for a history entry. Built with textContent/Attribute
+// assignments only - never innerHTML - so crafted URLs or video titles
+// can't inject markup into the page.
 function row(h) {
     const el = document.createElement('div');
     el.className = 'hist-row';
-    const files = h.files ? JSON.parse(h.files) : [];
+    let files = [];
+    try { files = h.files ? JSON.parse(h.files) : []; } catch (e) { files = []; }
     const fileNames = files.map(f => f.split('/').pop()).join(', ');
     const title = h.title || (fileNames ? fileNames.split(',')[0] : h.url);
-    el.innerHTML = `
-        <span class="hist-status ${statusClass(h.status)}">${h.status}</span>
-        <span class="hist-title" title="${title.replace(/"/g, '&quot;')}">${title}</span>
-        <span class="hist-url" title="${h.url}">${h.url}</span>
-        <span class="hist-size">${h.size_bytes ? formatSize(h.size_bytes) : '—'}</span>
-        <span class="hist-time">${formatTime(h.created_at)}</span>`;
+
+    const status = document.createElement('span');
+    status.className = `hist-status ${statusClass(h.status)}`;
+    status.textContent = h.status || '';
+
+    const titleEl = document.createElement('span');
+    titleEl.className = 'hist-title';
+    titleEl.setAttribute('title', title || '');
+    titleEl.textContent = title || '';
+
+    const urlEl = document.createElement('span');
+    urlEl.className = 'hist-url';
+    urlEl.setAttribute('title', h.url || '');
+    urlEl.textContent = h.url || '';
+
+    const sizeEl = document.createElement('span');
+    sizeEl.className = 'hist-size';
+    sizeEl.textContent = h.size_bytes ? formatSize(h.size_bytes) : '—';
+
+    const timeEl = document.createElement('span');
+    timeEl.className = 'hist-time';
+    timeEl.textContent = formatTime(h.created_at);
+
+    el.append(status, titleEl, urlEl, sizeEl, timeEl);
     return el;
 }
 
