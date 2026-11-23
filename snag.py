@@ -29,6 +29,7 @@ import hashlib
 import subprocess
 import threading
 import time
+import urllib.parse
 import shutil
 import tempfile
 from concurrent.futures import ThreadPoolExecutor
@@ -40,6 +41,47 @@ from flask import Flask, request, jsonify, send_from_directory, session, redirec
 
 # When the app started (used by /health to report uptime).
 STARTED_AT = time.time()
+
+
+def _safe_int(value, default=0, lo=None, hi=None):
+    """Best-effort int coercion with optional clamping (never raises)."""
+    try:
+        n = int(value)
+    except (TypeError, ValueError):
+        n = default
+    if lo is not None:
+        n = max(lo, n)
+    if hi is not None:
+        n = min(hi, n)
+    return n
+
+
+def _as_bool(value, default=False):
+    """Coerce a JSON-ish value to bool, tolerating strings/numbers."""
+    if value is None:
+        return default
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return value != 0
+    return str(value).strip().lower() not in ('0', 'false', 'no', 'off', '')
+
+
+def _validate_ai_endpoint(endpoint):
+    """Return (endpoint, error). Reject non-http(s) endpoints (SSRF guard)."""
+    endpoint = (endpoint or '').strip()
+    try:
+        parsed = urllib.parse.urlparse(endpoint)
+    except Exception:
+        return None, 'Invalid endpoint URL'
+    if parsed.scheme not in ('http', 'https') or not parsed.netloc:
+        return None, 'Endpoint must be an http(s) URL (e.g. http://localhost:8080/v1)'
+    return endpoint, None
+
+
+# Max videos per collection fetch: a hard cap so a huge playlist can't
+# stall the request thread (and the whole app) indefinitely.
+MAX_COLLECTION_VIDEOS = 50
 
 # ---------------------------------------------------------------------------
 # Setup
@@ -79,6 +121,33 @@ FINISHED_JOB_TTL = 120
 MAX_PREVIEWS = 2
 previews_active = 0
 previews_lock = threading.Lock()
+
+
+@app.after_request
+def set_security_headers(response):
+    """Add a basic set of security headers to every response.
+
+    CSP is deliberately strict: the app is fully self-contained (no external
+    scripts or stylesheets except the Google Fonts the HTML pages load).
+    'unsafe-inline' for style is required because the pages use inline style
+    attributes (e.g. style="display:none").
+    """
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'DENY'
+    response.headers['Referrer-Policy'] = 'no-referrer'
+    response.headers['Permissions-Policy'] = 'camera=(), microphone=(), geolocation=()'
+    response.headers['Content-Security-Policy'] = (
+        "default-src 'self'; "
+        "script-src 'self'; "
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+        "font-src 'self' https://fonts.gstatic.com; "
+        "img-src 'self' data:; "
+        "connect-src 'self'; "
+        "object-src 'none'; "
+        "base-uri 'none'; "
+        "frame-ancestors 'none'"
+    )
+    return response
 
 # ---------------------------------------------------------------------------
 # Authentication (SQLite)
@@ -238,14 +307,19 @@ def set_meta(key, value):
     conn.commit()
     conn.close()
 
-def log_history(url, title, status, files, size_bytes):
-    """Insert a row into the download history table."""
+def log_history(url, title, status, files, size_bytes, created_at=None):
+    """Insert a row into the download history table.
+
+    created_at: the job's actual start time (ISO string). Falls back to the
+    current time when not provided.
+    """
+    now = datetime.now().isoformat()
     conn = _get_db()
     conn.execute(
         "INSERT INTO history (url, title, status, files, size_bytes, created_at, finished_at) "
         "VALUES (?, ?, ?, ?, ?, ?, ?)",
         (url, title, status, json.dumps(files), size_bytes,
-         datetime.now().isoformat(), datetime.now().isoformat())
+         created_at or now, now)
     )
     conn.commit()
     conn.close()
@@ -330,17 +404,18 @@ VIDEO_FORMATS = {'mp4', 'webm', 'mkv', 'mov'}
 AUDIO_FORMATS = {'mp3', 'm4a', 'wav', 'ogg', 'flac'}
 
 # Matches common YouTube URL shapes (watch, playlist, channel, user, etc.).
+# Anchored to the whole string and excludes characters that would let a
+# crafted URL smuggle markup into a page that renders URLs (History).
 YT_RE = re.compile(
     r'^(https?://)?(www\.|m\.|music\.)?'
     r'(youtube\.com/(watch|playlist|shorts|v|embed|live|channel|user|c|@)'
-    r'|youtu\.be/)\S+',
+    r'|youtu\.be/)[^<>"\'\s]+$',
     re.I,
 )
 
-# Matches a clip timestamp: plain seconds, MM:SS, or H:MM:SS. Minutes and
-# seconds may be any length (yt-dlp accepts 90:00, 1:5, etc.), so we don't
-# cap them at [0-5]d here - malformed values just fail inside yt-dlp.
-TIME_RE = re.compile(r'^(?:\d+:)?\d{1,2}:\d{1,2}$|^\d{1,4}$')
+# Strict clip-timestamp validation (plain seconds, MM:SS, H:MM:SS).
+# Minutes and hours may be any number (yt-dlp accepts 90:00, 1:5, etc.),
+# but seconds must be < 60 (plain seconds are capped at 9999).
 
 # Matches the playlist-item picker, e.g. '1,3,5-10' (indices and ranges).
 PLAYLIST_ITEMS_RE = re.compile(r'^\d+(?:-\d+)?(?:,\d+(?:-\d+)?)*$')
@@ -359,9 +434,30 @@ def is_valid_url(url):
 
 
 def is_valid_time(s):
-    """Return True if s is '' or a valid clip timestamp (seconds / MM:SS / H:MM:SS)."""
+    """Return True if s is '' or a valid clip timestamp (seconds / MM:SS / H:MM:SS).
+
+    True is returned only when the value parses AND seconds < 60 (and so
+    for H:MM:SS the minutes too).
+    """
     s = (s or '').strip()
-    return True if not s else bool(TIME_RE.match(s))
+    if not s:
+        return True
+    if s.isdigit():
+        return 0 <= int(s) <= 9999
+    parts = s.split(':')
+    if len(parts) not in (2, 3):
+        return False
+    try:
+        nums = [int(p) for p in parts]
+    except ValueError:
+        return False
+    if any(n < 0 for n in nums):
+        return False
+    if len(parts) == 2:
+        _, secs = nums
+        return secs < 60
+    _, minutes, secs = nums
+    return minutes < 60 and secs < 60
 
 
 def is_valid_playlist_items(s):
@@ -384,7 +480,10 @@ def is_inside_downloads(path):
     """
     base = os.path.realpath(DOWNLOADS_DIR)
     target = os.path.realpath(path)
-    return os.path.commonpath([base, target]) == base and target != base
+    try:
+        return os.path.commonpath([base, target]) == base and target != base
+    except ValueError:
+        return False
 
 
 def is_bulk(url):
@@ -475,8 +574,15 @@ def build_args(url, d, audio_only, audio_format, audio_quality,
     # default both save into downloads/ named by title. A custom template is
     # only honoured if it stays inside the downloads folder - otherwise we
     # fall back to the default so a crafted template can't write elsewhere.
-    if (not bulk) and output_template and is_inside_downloads(output_template):
-        out_path = output_template
+    # Relative templates are resolved against DOWNLOADS_DIR first, so the
+    # documented "%(title)s.%(ext)s" works as expected.
+    if (not bulk) and output_template:
+        if not os.path.isabs(output_template):
+            output_template = os.path.join(DOWNLOADS_DIR, output_template)
+        if is_inside_downloads(output_template):
+            out_path = output_template
+        else:
+            out_path = os.path.join(DOWNLOADS_DIR, '%(title)s.%(ext)s')
     else:
         out_path = os.path.join(DOWNLOADS_DIR, '%(title)s.%(ext)s')
 
@@ -720,7 +826,8 @@ def run_job(job_id, url, d, audio_only, audio_format, audio_quality,
                 p = os.path.join(DOWNLOADS_DIR, f)
                 if os.path.isfile(p):
                     total_size += os.path.getsize(p)
-            log_history(url, job.get('current_file') or '', status, files, total_size)
+            log_history(url, job.get('current_file') or '', status, files,
+                        total_size, job.get('started_at'))
         except Exception:
             pass  # never let a history write break the job
 
@@ -728,8 +835,10 @@ def run_job(job_id, url, d, audio_only, audio_format, audio_quality,
 def prune_finished_jobs():
     """Drop finished/cancelled jobs that are older than FINISHED_JOB_TTL.
 
-    Called on every status poll so the in-memory table doesn't grow without
-    bound. Running jobs (no 'finished_at') are left alone.
+    Called on every status poll AND by the background reaper thread below, so
+    the in-memory table is pruned even when no polls happen (e.g. the browser
+    tab was closed right after a job finished). Running jobs (no 'finished_at')
+    are left alone.
     """
     now = time.time()
     with jobs_lock:
@@ -737,6 +846,23 @@ def prune_finished_jobs():
                  if j.get('finished_at') and now - j['finished_at'] > FINISHED_JOB_TTL]
         for jid in stale:
             jobs.pop(jid, None)
+
+
+def _job_reaper():
+    """Background thread: prune finished jobs every 60s.
+
+    The table only grows by one entry per download; this daemon thread keeps
+    it from growing without bound even when nobody polls status.
+    """
+    while True:
+        time.sleep(60)
+        try:
+            prune_finished_jobs()
+        except Exception:
+            pass  # never let the reaper kill the process
+
+
+threading.Thread(target=_job_reaper, daemon=True, name='snag-job-reaper').start()
 
 
 # ---------------------------------------------------------------------------
@@ -991,6 +1117,9 @@ def ai_models():
     endpoint = (request.args.get('endpoint') or get_meta('ai_endpoint', '')).strip()
     if not endpoint:
         return jsonify(success=False, error='No endpoint configured. Set it in Settings.', models=[])
+    endpoint, endpoint_err = _validate_ai_endpoint(endpoint)
+    if endpoint_err:
+        return jsonify(success=False, error=endpoint_err, models=[])
     api_key = get_meta('ai_api_key', '')
     try:
         base = endpoint.rstrip('/')
@@ -1105,8 +1234,17 @@ def ai_transcript():
 
         if not videos:
             return jsonify(success=False, error='No videos found at that URL'), 400
+        # A hard cap on how many videos we fetch per collection, so a huge
+        # playlist can't stall the request thread (and the whole app, by
+        # holding a thread) indefinitely. Users must pass an explicit count.
+        if count > MAX_COLLECTION_VIDEOS:
+            return jsonify(success=False,
+                           error=f'Too many videos ({len(videos)} available). Fetch at most {MAX_COLLECTION_VIDEOS} per collection (pass an explicit count).'), 400
         if count > 0:
             videos = videos[:count]
+        elif len(videos) > MAX_COLLECTION_VIDEOS:
+            return jsonify(success=False,
+                           error=f'Too many videos ({len(videos)}). Pass an explicit count of at most {MAX_COLLECTION_VIDEOS}.'), 400
 
         # Fetch each video's transcript in parallel (4 workers), skipping any
         # that have no captions (or that time out / fail) so one bad video
@@ -1194,15 +1332,27 @@ def ai_summarize():
 
     settings = get_ai_settings()
     endpoint = (d.get('endpoint') or settings['ai_endpoint']).strip()
-    model = (d.get('model') or settings['ai_model']).strip()
     if not endpoint:
         return jsonify(success=False, error='No endpoint configured. Set it in Settings.'), 400
+    endpoint, endpoint_err = _validate_ai_endpoint(endpoint)
+    if endpoint_err:
+        return jsonify(success=False, error=endpoint_err), 400
+    model = (d.get('model') or settings['ai_model']).strip()
     if not model:
         return jsonify(success=False, error='No model selected. Pick one or set it in Settings.'), 400
 
     api_key = settings['ai_api_key']
-    temperature = d.get('temperature', settings['ai_temperature'])
-    timeout = int(d.get('timeout', settings['ai_timeout']) or 300)
+    # Coerce user-supplied values instead of crashing on a bad one.
+    try:
+        timeout = int(d.get('timeout', settings['ai_timeout']) or 300)
+    except (TypeError, ValueError):
+        timeout = 300
+    timeout = max(10, min(timeout, AI_SUBPROCESS_TIMEOUT))
+    try:
+        temperature = float(d.get('temperature', settings['ai_temperature']) or 0.4)
+    except (TypeError, ValueError):
+        temperature = 0.4
+    temperature = max(0.0, min(temperature, 2.0))
     # System prompt comes from the DB (editable in Settings), not a file.
     system_prompt = (d.get('system_prompt') or settings['ai_system_prompt']
                      or DEFAULT_AI_SYSTEM_PROMPT)
@@ -1269,6 +1419,14 @@ def download():
     if not is_valid_url(url):
         return jsonify(success=False, error='Invalid YouTube URL'), 400
 
+    # Resolve and validate every user-supplied value before they reach yt-dlp.
+    url_type = str(d.get('type', 'video') or 'video').strip().lower()
+    audio_only = _as_bool(d.get('audio_only')) or url_type == 'mp3'
+    fragments = _safe_int(d.get('fragments'), 0, 0, 16)
+    audio_quality = _safe_int(d.get('audio_quality'), 2, 0, 4)
+    if str(audio_quality) not in AUDIO_QUALITY:
+        audio_quality = 2
+
     # Reject malformed user-supplied values before they reach yt-dlp.
     if not (is_valid_time(d.get('trim_start', '')) and is_valid_time(d.get('trim_end', ''))):
         return jsonify(success=False, error='Invalid clip start/end (use seconds, MM:SS or HH:MM:SS)'), 400
@@ -1301,23 +1459,23 @@ def download():
     threading.Thread(
         target=run_job,
         args=(job_id, url, d,
-              d.get('audio_only', False),
-              d.get('audio_format', 'mp3'),
-              d.get('audio_quality', 2),
-              d.get('output_format', 'mp4'),
-              d.get('output_template', ''),
-              d.get('resume', True),
-              d.get('fragments', 0),
-              d.get('metadata', False),
-              d.get('playlist_index', ''),
-              d.get('subtitles', False),
-              d.get('sub_langs', 'en'),
-              d.get('sub_embed', False),
-              d.get('trim_start', ''),
-              d.get('trim_end', ''),
-              d.get('playlist_items', ''),
-              d.get('cookies', ''),
-              d.get('thumbnails', False)),
+              audio_only,
+              str(d.get('audio_format', 'mp3') or 'mp3'),
+              audio_quality,
+              str(d.get('output_format', 'mp4') or 'mp4'),
+              str(d.get('output_template', '') or ''),
+              _as_bool(d.get('resume'), True),
+              fragments,
+              _as_bool(d.get('metadata')),
+              str(d.get('playlist_index', '') or ''),
+              _as_bool(d.get('subtitles')),
+              str(d.get('sub_langs', 'en') or 'en'),
+              _as_bool(d.get('sub_embed')),
+              str(d.get('trim_start', '') or ''),
+              str(d.get('trim_end', '') or ''),
+              str(d.get('playlist_items', '') or ''),
+              str(d.get('cookies', '') or ''),
+              _as_bool(d.get('thumbnails'))),
         daemon=True,
     ).start()
 
@@ -1379,7 +1537,8 @@ def preview():
       fast; entries don't carry per-item formats, so we report the item count
       and the collection title instead.
     """
-    url = (request.get_json(silent=True) or {}).get('url', '').strip()
+    url = (request.get_json(silent=True) or {}).get('url', '').strip() \
+        or (request.args.get('url', '') or '').strip()
     if not url:
         return jsonify(success=False, error='No URL provided'), 400
     if not is_valid_url(url):
