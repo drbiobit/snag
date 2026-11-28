@@ -32,7 +32,7 @@
   --docusaurus-highlighted-code-line-bg: rgba(255, 255, 255, 0.1);
 }
 
-/* ── Dark navbar & footer (matches the landing page) ─────────────── */
+/* ── Dark navbar, sidebar, footer & search (matches the landing page) ── */
 
 .navbar {
   background: #0a0c0f !important;
@@ -55,6 +55,60 @@
 }
 .navbar .navbar__link--active {
   color: #3ddc84 !important;
+}
+
+/* sidebar */
+.menu {
+  background: #0e1116 !important;
+  border-right: 1px solid #1d232c;
+}
+.menu .menu__link {
+  color: #7a8a9a;
+}
+.menu .menu__link:hover {
+  color: #e8ecf1;
+  background: rgba(255,255,255,0.04);
+}
+.menu .menu__link--active {
+  color: #3ddc84 !important;
+  background: rgba(61,220,132,0.06) !important;
+}
+.menu .menu__list {
+  background: transparent;
+}
+.menu .menu__caret {
+  color: #4a5563;
+}
+
+/* search modal */
+.docSearch .DocSearch-Modal {
+  background: #11151b !important;
+}
+.DocSearch-Container {
+  background: #11151b !important;
+}
+.DocSearch-Search-Button {
+  background: #1a2028 !important;
+  border: 1px solid #1d232c !important;
+  color: #8fa0b0 !important;
+}
+.DocSearch-Search-Input {
+  background: #0a0d11 !important;
+  border: 1px solid #1d232c !important;
+  color: #e8ecf1 !important;
+}
+.DocSearch-Search-Input::placeholder {
+  color: #4a5563;
+}
+.DocSearch-Hits {
+  background: #11151b;
+}
+.DocSearch-Hits-* {
+  color: #8fa0b0;
+}
+.DocSearch-Hits-mark {
+  background: rgba(61,220,132,0.2);
+  color: #3ddc84;
 }
 
 .footer {

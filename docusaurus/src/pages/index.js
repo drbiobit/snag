@@ -149,8 +149,7 @@ export default function Home() {
                   <span className={`${styles.dot} ${styles.y}`} />
                   <span className={`${styles.dot} ${styles.g}`} />
                 </div>
-                <pre className={styles.codeBody}><code><span className={styles.dim}># pull the image…</span>\ndocker pull <span className={styles.green}>ghcr.io/drbiobit/snag:latest</span>\n\n<span className={styles.dim}># …and launch it</span>\ndocker run -d --name snag -p 8000:8000 \
-  -v ./downloads:/data <span className={styles.green}>ghcr.io/drbiobit/snag:latest</span></code></pre>
+                <pre className={styles.codeBody}><code>{'  # pull the image\n  docker pull ghcr.io/drbiobit/snag:latest\n\n  # …and run it\n  docker run -d --name snag \\\n    -p 8000:8000 \\\n    -v ./downloads:/data \\\n    ghcr.io/drbiobit/snag:latest'}</code></pre>
               </div>
             </div>
           </div>
