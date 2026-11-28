@@ -135,22 +135,42 @@ export default function Home() {
         <section className={styles.sectionAlt}>
           <div className={styles.sectionInner}>
             <div className={styles.eyebrow}>Quick start</div>
-            <div className={styles.quickRow}>
-              <div className={styles.quickCopy}>
-                <h2 className={styles.sectionTitle}>Up in 30 seconds</h2>
-                <p className={styles.sectionDesc}>
-                  Pull the prebuilt image, run it, and open your browser. Account setup happens
-                  on first visit — nothing to configure up front.
-                </p>
-              </div>
-              <div className={styles.codeBlock}>
-                <div className={styles.codeBar}>
-                  <span className={`${styles.dot} ${styles.r}`} />
-                  <span className={`${styles.dot} ${styles.y}`} />
-                  <span className={`${styles.dot} ${styles.g}`} />
+            <h2 className={styles.sectionTitle}>Up in 30 seconds</h2>
+            <p className={styles.sectionDesc}>
+              Pull the prebuilt image, run it, and open your browser. Account setup happens
+              on first visit — nothing to configure up front.
+            </p>
+            <div className={styles.quickSteps}>
+              <div className={styles.quickStep}>
+                <span className={styles.stepNum}>1</span>
+                <div>
+                  <h4>Pull the image</h4>
+                  <p>Grab the prebuilt container from GHCR.</p>
                 </div>
-                <pre className={styles.codeBody}><code>{'  # pull the image\n  docker pull ghcr.io/drbiobit/snag:latest\n\n  # …and run it\n  docker run -d --name snag \\\n    -p 8000:8000 \\\n    -v ./downloads:/data \\\n    ghcr.io/drbiobit/snag:latest'}</code></pre>
               </div>
+              <div className={styles.quickStep}>
+                <span className={styles.stepNum}>2</span>
+                <div>
+                  <h4>Run it</h4>
+                  <p>One command, port 8000, volume for downloads.</p>
+                </div>
+              </div>
+              <div className={styles.quickStep}>
+                <span className={styles.stepNum}>3</span>
+                <div>
+                  <h4>Open your browser</h4>
+                  <p>Visit <code>localhost:8000</code> — set up your account on first visit.</p>
+                </div>
+              </div>
+            </div>
+            <div className={styles.codeBlock}>
+              <div className={styles.codeBar}>
+                <span className={`${styles.dot} ${styles.r}`} />
+                <span className={`${styles.dot} ${styles.y}`} />
+                <span className={`${styles.dot} ${styles.g}`} />
+                <span className={styles.codeBarLabel}>terminal</span>
+              </div>
+              <pre className={styles.codeBody}><code>{'docker pull ghcr.io/drbiobit/snag:latest\n\ndocker run -d --name snag \\\n  -p 8000:8000 \\\n  -v ./downloads:/data \\\n  ghcr.io/drbiobit/snag:latest'}</code></pre>
             </div>
           </div>
         </section>
