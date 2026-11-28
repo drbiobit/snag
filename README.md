@@ -8,11 +8,8 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-4f8cc9)](https://www.python.org/)
 [![Self-hosted](https://img.shields.io/badge/self--hosted-yes-2ea44f)](#quickstart)
 
-![Snag — grab videos, playlists & audio from your browser](docs-assets/snag-ui.png)
+![Snag homepage](docs-assets/Snag-·-grab-videos-playlists-audio.png)
 
-![Snag homepage](docs-assets/snag-homepage.png)
-
-![Snag AI Summarize setup](docs-assets/snag-ai-setup.png)
 
 ## Why Snag?
 
