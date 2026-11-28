@@ -121,8 +121,8 @@ export default function Home() {
               downloads never leave your network.
             </p>
             <div className={styles.features}>
-              {features.map((f) => (
-                <div key={f.title} className={styles.feature}>
+              {features.map((f, i) => (
+                <div key={f.title} className={i < 2 ? `${styles.feature} ${styles.featureLarge}` : styles.feature}>
                   <div className={styles.featIcon}>{f.icon}</div>
                   <h3 className={styles.featTitle}>{f.title}</h3>
                   <p className={styles.featDesc}>{f.desc}</p>

@@ -72,10 +72,10 @@
 
 /* hero title */
 .heroTitle {
-  font-size: clamp(2.5rem, 4.8vw, 3.75rem);
-  line-height: 1.06;
+  font-size: clamp(2.7rem, 5.5vw, 4.1rem);
+  line-height: 1.02;
   font-weight: 800;
-  letter-spacing: -0.035em;
+  letter-spacing: -0.04em;
   margin: 0 0 1.5rem;
   color: #f4f7fa;
 }
@@ -196,7 +196,10 @@
 
 /* ── Feature cards ────────────────────────────────────────────────────── */
 
-.features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem; }
+.features { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.25rem; }
+.featureLarge { grid-column: span 2; padding: 2rem 2rem; }
+.featureLarge .featIcon { width: 48px; height: 48px; border-radius: 12px; }
+.featureLarge .featTitle { font-size: 1.1rem; }
 .feature {
   background: #11151b;
   border: 1px solid #1a2028;
@@ -306,10 +309,14 @@
   .heroShot { order: -1; }
   .frame { transform: none; }
   .features { grid-template-columns: repeat(2, 1fr); }
+  .featureLarge { grid-column: span 2; }
   .docsGrid { grid-template-columns: repeat(2, 1fr); }
 }
 @media (max-width: 560px) {
   .features, .docsGrid { grid-template-columns: 1fr; }
+  .featureLarge { grid-column: span 1; padding: 1.6rem 1.5rem; }
+  .featureLarge .featIcon { width: 44px; height: 44px; }
+  .featureLarge .featTitle { font-size: 1.05rem; }
   .heroInner { padding: 3.5rem 1.25rem 3rem; }
   .section, .sectionAlt { padding: 3.5rem 1.25rem; }
   .sectionTitle { font-size: 1.5rem; }
