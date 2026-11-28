@@ -31,3 +31,52 @@
   --ifm-color-primary-lightest: #86efac;
   --docusaurus-highlighted-code-line-bg: rgba(255, 255, 255, 0.1);
 }
+
+/* ── Dark navbar & footer (matches the landing page) ─────────────── */
+
+.navbar {
+  background: #0a0c0f !important;
+  border-bottom: 1px solid #1d232c;
+}
+.navbar .navbar__inner {
+  color: #e8ecf1;
+}
+.navbar .navbar__brand {
+  color: #e8ecf1;
+}
+.navbar .navbar__title {
+  color: #f4f7fa;
+}
+.navbar .navbar__link {
+  color: #8fa0b0;
+}
+.navbar .navbar__link:hover {
+  color: #e8ecf1;
+}
+.navbar .navbar__link--active {
+  color: #3ddc84 !important;
+}
+
+.footer {
+  background: #0a0c0f !important;
+  border-top: 1px solid #1d232c;
+}
+.footer .footer__links {
+  padding-top: 2rem;
+}
+.footer .footer__title {
+  color: #8fa0b0;
+}
+.footer .footer__link {
+  color: #6b7a8a;
+}
+.footer .footer__link:hover {
+  color: #e8ecf1;
+}
+.footer .footer__bottom {
+  background: transparent;
+  border-top: 1px solid #1d232c;
+}
+.footer .footer__copyright {
+  color: #4a5563;
+}
