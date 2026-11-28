@@ -60,12 +60,12 @@ const docs = [
 ];
 
 export default function Home() {
-  const heroShot = useBaseUrl('/img/snag-ui.png');
+  const heroShot = useBaseUrl('/img/snag-ai-setup.png');
   return (
     <Layout
       title="Snag — self-hosted web UI for yt-dlp"
       description="Snag is a minimal, self-hosted web UI for yt-dlp: grab videos, playlists, channels and audio from your browser — plus an AI Summarize pipeline.">
-      <main>
+      <main className={styles.page}>
         <section className={styles.hero}>
           <div className={styles.heroScrim} />
           <div className={styles.heroInner}>
@@ -104,9 +104,9 @@ export default function Home() {
                   <span className={`${styles.dot} ${styles.r}`} />
                   <span className={`${styles.dot} ${styles.y}`} />
                   <span className={`${styles.dot} ${styles.g}`} />
-                  <span className={styles.urlBar}><b>localhost</b>:8000 · downloading</span>
+                  <span className={styles.urlBar}><b>localhost</b>:8000/summarize</span>
                 </div>
-                <img className={styles.frameShot} src={heroShot} alt="Snag — paste a link, pick options, download with live progress" />
+                <img className={styles.frameShot} src={heroShot} alt="Snag AI Summarize — configure your endpoint" />
               </div>
             </div>
           </div>
@@ -132,7 +132,7 @@ export default function Home() {
           </div>
         </section>
 
-        <section className={`${styles.section} ${styles.sectionAlt}`}>
+        <section className={styles.sectionAlt}>
           <div className={styles.sectionInner}>
             <div className={styles.eyebrow}>Quick start</div>
             <div className={styles.quickRow}>

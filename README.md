@@ -10,6 +10,10 @@
 
 ![Snag — grab videos, playlists & audio from your browser](docs-assets/snag-ui.png)
 
+![Snag homepage](docs-assets/snag-homepage.png)
+
+![Snag AI Summarize setup](docs-assets/snag-ai-setup.png)
+
 ## Why Snag?
 
 - **No CLI, no build step.** The whole backend is one Python file and the
