@@ -238,7 +238,7 @@
 
 .codeBlock {
   max-width: 640px;
-  background: #0d1015;
+  background: #0d1015 !important;
   border: 1px solid #1a2028;
   border-radius: 14px;
   box-shadow: 0 30px 70px -30px rgba(0,0,0,0.6);
@@ -254,6 +254,7 @@
   margin: 0; padding: 1.1rem 1.3rem; overflow-x: auto;
   font-family: 'Source Code Pro', ui-monospace, monospace;
   font-size: 0.87rem; line-height: 1.75; color: #c8d8cc;
+  background: transparent !important;
 }
 .codeBody .dim { color: #4a5568; font-style: italic; }
 .codeBody .green { color: #5ee79f; }
