@@ -23,12 +23,14 @@ const LS_KEY = 'snag_summarize_state';
 let lastTranscript = '';
 let lastArticle = '';
 let settings = {};
+let summarizing = false;   // true while a summarize request is in flight
+let transcripting = false; // true while a transcript request is in flight
 
 // ---- Persistence ---------------------------------------------------------
 
-function saveState() {
+function saveState(extra) {
     try {
-        localStorage.setItem(LS_KEY, JSON.stringify({
+        const state = {
             url: $('yt-url').value,
             type: $('yt-type').value,
             count: $('yt-count').value,
@@ -38,7 +40,11 @@ function saveState() {
             article: lastArticle,
             model: $('model-select').value,
             temperature: $('temperature').value,
-        }));
+        };
+        if (summarizing) state.in_progress = 'summarize';
+        if (transcripting) state.in_progress = 'transcript';
+        if (extra) Object.assign(state, extra);
+        localStorage.setItem(LS_KEY, JSON.stringify(state));
     } catch (e) { /* storage full or unavailable - ignore */ }
 }
 
@@ -74,9 +80,6 @@ function renderArticle(text) {
 }
 
 function restoreState() {
-    let s;
-    try { s = JSON.parse(localStorage.getItem(LS_KEY) || 'null'); } catch (e) { s = null; }
-    if (!s) return;
     if (s.url) $('yt-url').value = s.url;
     if (s.type) $('yt-type').value = s.type;
     if (s.count) $('yt-count').value = s.count;
@@ -96,6 +99,57 @@ function restoreState() {
         renderArticle(s.article);
         $('result-meta').textContent = s.article.length.toLocaleString() + ' chars';
         $('result-card').style.display = '';
+    }
+
+    // A refresh (or navigation) can interrupt an in-flight request. The
+    // backend job keeps running and will finish on its own, so the only thing
+    // lost is the live status line. Restore a "still working" state so the
+    // user sees the job is ongoing instead of a blank page that looks like
+    // it restarted from scratch.
+    if (s.in_progress) {
+        if (s.in_progress === 'summarize') {
+            summarizing = true;
+            $('btn-summarize').disabled = true;
+            setStatus('summarize-status', 'Summarize still running\u2026 it will appear here when done.', 'info', true);
+        } else {
+            transcripting = true;
+            $('btn-transcript').disabled = true;
+            setStatus('transcript-status', 'Transcript still fetching\u2026 it will appear here when done.', 'info', true);
+        }
+    }
+}
+
+// Re-run restoreState() once a request that survived a page refresh
+// completes. Input fields are left alone (the user may have edited them,
+// and the completed request already wrote fresh state) but the transcript
+// and article are re-rendered, so a refresh that interrupted an in-flight
+// job shows the result as soon as it lands.
+function refreshState() {
+    let s;
+    try { s = JSON.parse(localStorage.getItem(LS_KEY) || 'null'); } catch (e) { s = null; }
+    if (!s) return;
+    if (s.transcript) {
+        lastTranscript = s.transcript;
+        $('transcript-text').textContent = s.transcript;
+        $('transcript-card').style.display = '';
+        $('summarize-card').style.display = '';
+        $('transcript-meta').textContent = s.transcript.length.toLocaleString() + ' chars';
+    }
+    if (s.article) {
+        lastArticle = s.article;
+        renderArticle(s.article);
+        $('result-meta').textContent = s.article.length.toLocaleString() + ' chars';
+        $('result-card').style.display = '';
+    }
+    // Drop the in-progress flags now that the request has completed.
+    if (s.in_progress) {
+        if (s.in_progress === 'summarize') {
+            summarizing = false;
+            $('btn-summarize').disabled = false;
+        } else {
+            transcripting = false;
+            $('btn-transcript').disabled = false;
+        }
     }
 }
 
@@ -232,6 +286,8 @@ async function getTranscript() {
         isCollection ? 'Enumerating and fetching transcripts\u2026 this can take a while.' : 'Fetching transcript\u2026',
         'info', true);
     $('btn-transcript').disabled = true;
+    transcripting = true;
+    saveState();
     try {
         const r = await fetch('/api/ai/transcript', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -254,7 +310,9 @@ async function getTranscript() {
     } catch (e) {
         setStatus('transcript-status', 'Request failed: ' + e.message, 'err');
     } finally {
+        transcripting = false;
         $('btn-transcript').disabled = false;
+        refreshState();
     }
 }
 
@@ -268,6 +326,8 @@ async function summarize() {
     const temperature = $('temperature').value;
     setStatus('summarize-status', 'Summarizing\u2026 this can take a while.', 'info', true);
     $('btn-summarize').disabled = true;
+    summarizing = true;
+    saveState();
     try {
         // The field is the source of truth - send it explicitly so the
         // article always uses what the user sees on screen.
@@ -291,7 +351,9 @@ async function summarize() {
     } catch (e) {
         setStatus('summarize-status', 'Request failed: ' + e.message, 'err');
     } finally {
+        summarizing = false;
         $('btn-summarize').disabled = false;
+        refreshState();
     }
 }
 
